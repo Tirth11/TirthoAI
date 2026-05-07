@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TirthoAI - One interface. Multiple AI minds.</title>
+    <!-- SEO Tags -->
+    <meta name="description" content="TirthoAI: A powerful multi-model AI chatbot interface.">
+    <meta name="keywords" content="AI, Chatbot, TirthoAI, DeepSeek, GLM, Kimi, Minimax">
+    
+    <!-- External Resources -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-sidebar: #0f172a;
+            --bg-main: #f8fafc;
+            --bg-chat-user: #6366f1;
+            --bg-chat-ai: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --bg-main: #020617;
+            --bg-chat-ai: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --bg-chat-user: #4f46e5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-sidebar);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+            position: relative;
+            z-index: 50;
+        }
+
+        .sidebar.collapsed {
+            width: 0;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 22px;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .new-chat-btn {
+            margin: 0 20px 20px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .new-chat-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 12px;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 8px;
+            padding-left: 12px;
+        }
+
+        .nav-item {
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #94a3b8;
+            font-size: 14px;
+            transition: var(--transition);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .nav-item i {
+            width: 16px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .footer-action {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        .footer-action:hover {
+            color: white;
+        }
+
+        /* Main Chat Area */
+        .main-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            max-width: 100%;
+        }
+
+        .chat-header {
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--bg-main);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 40;
+        }
+
+        .sidebar-toggle {
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 18px;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+
+        .sidebar-toggle:hover {
+            background-color: var(--border-color);
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            scroll-behavior: smooth;
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            max-width: 800px;
+            margin: auto;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .welcome-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .welcome-tagline {
+            color: var(--text-muted);
+            font-size: 18px;
+            margin-bottom: 48px;
+        }
+
+        .suggestions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .suggestion-card {
+            background-color: var(--bg-chat-ai);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: var(--radius-md);
+            text-align: left;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .suggestion-card:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .suggestion-card i {
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-size: 20px;
+        }
+
+        .suggestion-card h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .suggestion-card p {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* Message Bubbles */
+        .message-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 850px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .message-wrapper.user {
+            align-items: flex-end;
+        }
+
+        .message-bubble {
+            padding: 16px 20px;
+            border-radius: 20px;
+            font-size: 15px;
+            line-height: 1.6;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .user .message-bubble {
+            background-color: var(--bg-chat-user);
+            color: white;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .assistant .message-bubble {
+            background-color: var(--bg-chat-ai);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+            margin: 0 4px;
+        }
+
+        .message-model {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Markdown Styling */
+        .message-bubble pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: var(--radius-sm);
+            margin: 12px 0;
+            overflow-x: auto;
+        }
+
+        .message-bubble code {
+            font-family: 'Fira Code', monospace;
+            background: rgba(0, 0, 0, 0.05);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        .message-bubble table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 12px 0;
+        }
+
+        .message-bubble th, .message-bubble td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: left;
+        }
+
+        .message-bubble th {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        /* Thinking State */
+        .thinking-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px 20px;
+            background-color: var(--bg-chat-ai);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            border-bottom-left-radius: 4px;
+            width: fit-content;
+            min-width: 200px;
+        }
+
+        .thinking-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .thinking-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--primary);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        .thinking-timer {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+
+        .activity-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .step i {
+            font-size: 10px;
+        }
+
+        .step.done { color: #10b981; }
+        .step.active { color: var(--primary); }
+
+        /* Input Area */
+        .input-area-wrapper {
+            padding: 0 20px 24px;
+            background-color: transparent;
+            z-index: 40;
+        }
+
+        .input-composer {
+            max-width: 850px;
+            margin: 0 auto;
+            background-color: var(--bg-chat-ai);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-composer:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        .file-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-color);
+            display: none;
+        }
+
+        .file-chip {
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .file-chip-remove {
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .composer-inner {
+            display: flex;
+            align-items: flex-end;
+            padding: 4px 8px;
+        }
+
+        .upload-btn {
+            padding: 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            border-radius: 50%;
+        }
+
+        .upload-btn:hover {
+            background-color: var(--bg-main);
+            color: var(--primary);
+        }
+
+        #chatInput {
+            flex: 1;
+            border: none;
+            background: transparent;
+            resize: none;
+            padding: 12px;
+            font-size: 16px;
+            color: var(--text-main);
+            max-height: 200px;
+            min-height: 24px;
+            outline: none;
+        }
+
+        .send-btn {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            flex-shrink: 0;
+            margin-bottom: 4px;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: var(--text-muted);
+        }
+
+        .stop-btn {
+            background-color: #ef4444;
+        }
+
+        .composer-footer {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .selector-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .custom-select {
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-color);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            outline: none;
+        }
+
+        .custom-select:hover {
+            border-color: var(--primary);
+        }
+
+        /* Right Panel */
+        .right-panel {
+            width: 300px;
+            background-color: var(--bg-chat-ai);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+
+        .right-panel.collapsed {
+            width: 0;
+            overflow: hidden;
+            border-left: none;
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .panel-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .info-card {
+            background-color: var(--bg-main);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .info-title {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Utilities */
+        .hidden { display: none !important; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                height: 100%;
+                left: 0;
+                top: 0;
+            }
+            .right-panel { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-brain"></i>
+                <span>TirthoAI</span>
+            </div>
+            <i class="fas fa-times sidebar-toggle md-only" onclick="toggleSidebar()"></i>
+        </div>
+        
+        <button class="new-chat-btn" onclick="startNewChat()">
+            <i class="fas fa-plus"></i>
+            <span>New Chat</span>
+        </button>
+
+        <div class="sidebar-nav">
+            <div class="nav-section">
+                <div class="section-title">Search</div>
+                <div class="nav-item">
+                    <i class="fas fa-search"></i>
+                    <span>Search chats...</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="section-title">Recent Chats</div>
+                <div id="recentChats">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="section-title">Pinned</div>
+                <div id="pinnedChats">
+                    <div class="nav-item">
+                        <i class="fas fa-thumbtack"></i>
+                        <span>Project Proposal</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="section-title">Library</div>
+                <div class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Uploaded files</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="footer-action" onclick="resetSystem()" style="color: #ef4444;">
+                <i class="fas fa-broom"></i>
+                <span>Lean Cache</span>
+            </div>
+            <div class="footer-action" onclick="toggleDarkMode()">
+                <i class="fas fa-moon" id="themeIcon"></i>
+                <span id="themeText">Dark Mode</span>
+            </div>
+            <div class="footer-action">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </div>
+            <div class="footer-action" onclick="toggleSidebar()">
+                <i class="fas fa-chevron-left"></i>
+                <span>Collapse Sidebar</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main class="main-chat">
+        <header class="chat-header">
+            <div class="sidebar-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </div>
+            <div class="chat-mode-info">
+                <span id="currentModelDisplay">Auto Mode</span>
+            </div>
+            <div class="header-actions">
+                <i class="fas fa-info-circle sidebar-toggle" onclick="toggleRightPanel()"></i>
+            </div>
+        </header>
+
+        <div class="chat-container" id="chatContainer">
+            <!-- Welcome Screen (Visible when no messages) -->
+            <div class="welcome-screen" id="welcomeScreen">
+                <h1 class="welcome-title">How can TirthoAI help you today?</h1>
+                <p class="welcome-tagline">One interface. Multiple AI minds.</p>
+                
+                <div class="suggestions-grid">
+                    <div class="suggestion-card" onclick="useSuggestion('Write a Python script for a simple web scraper')">
+                        <i class="fas fa-code"></i>
+                        <h3>Coding Assistant</h3>
+                        <p>"Write a Python script for a simple web scraper..."</p>
+                    </div>
+                    <div class="suggestion-card" onclick="useSuggestion('Explain quantum computing like I am five')">
+                        <i class="fas fa-lightbulb"></i>
+                        <h3>Explainer</h3>
+                        <p>"Explain quantum computing like I am five..."</p>
+                    </div>
+                    <div class="suggestion-card" onclick="useSuggestion('Help me plan a 3-day trip to Tokyo')">
+                        <i class="fas fa-plane"></i>
+                        <h3>Trip Planner</h3>
+                        <p>"Help me plan a 3-day trip to Tokyo..."</p>
+                    </div>
+                    <div class="suggestion-card" onclick="useSuggestion('Draft a professional email for a salary negotiation')">
+                        <i class="fas fa-pen-nib"></i>
+                        <h3>Writing Help</h3>
+                        <p>"Draft a professional email for a salary negotiation..."</p>
+                    </div>
+                    <div class="suggestion-card" onclick="triggerFileUpload()">
+                        <i class="fas fa-upload"></i>
+                        <h3>Upload File</h3>
+                        <p>Analyze PDFs, images, or data files...</p>
+                    </div>
+                    <div class="suggestion-card" onclick="useSuggestion('Analyze the latest trends in AI technology')">
+                        <i class="fas fa-chart-line"></i>
+                        <h3>Trend Analysis</h3>
+                        <p>"Analyze the latest trends in AI technology..."</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages go here -->
+        </div>
+
+        <div class="input-area-wrapper">
+            <div class="input-composer">
+                <div class="file-chips" id="fileChips"></div>
+                <div class="composer-inner">
+                    <div class="upload-btn" onclick="triggerFileUpload()">
+                        <i class="fas fa-paperclip"></i>
+                    </div>
+                    <textarea id="chatInput" placeholder="Message TirthoAI..." rows="1"></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="handleSend()">
+                        <i class="fas fa-arrow-up"></i>
+                    </button>
+                    <button class="send-btn stop-btn hidden" id="stopBtn" onclick="stopGeneration()">
+                        <i class="fas fa-stop"></i>
+                    </button>
+                </div>
+                <div class="composer-footer">
+                    <div class="selector-group">
+                        <select class="custom-select" id="modelSelector">
+                            <option value="Auto">Auto</option>
+                            <option value="DeepSeek Pro">DeepSeek Pro</option>
+                            <option value="DeepSeek Flash">DeepSeek Flash</option>
+                            <option value="GLM 4.7">GLM 4.7</option>
+                            <option value="Kimi K2">Kimi K2</option>
+                            <option value="Kimi 2.6">Kimi 2.6</option>
+                            <option value="Minimax M2.7">Minimax M2.7</option>
+                        </select>
+                        <select class="custom-select">
+                            <option value="General">General Chat</option>
+                            <option value="Coding">Coding Mode</option>
+                            <option value="Reasoning">Deep Reasoning</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <input type="file" id="fileInput" class="hidden" multiple onchange="handleFileSelection(event)">
+        </div>
+    </main>
+
+    <!-- Right Panel -->
+    <aside class="right-panel collapsed" id="rightPanel">
+        <div class="panel-header">
+            <span>Details</span>
+            <i class="fas fa-times cursor-pointer" onclick="toggleRightPanel()"></i>
+        </div>
+        <div class="panel-content">
+            <div class="info-card">
+                <div class="info-title">Model Used</div>
+                <div class="info-value" id="panelModelName">Not selected</div>
+            </div>
+            <div class="info-card">
+                <div class="info-title">Why this model?</div>
+                <div class="info-value" id="panelSelectionReason">Automatic selection based on task complexity.</div>
+            </div>
+            <div class="info-card">
+                <div class="info-title">Current Mode</div>
+                <div class="info-value">General Chat</div>
+            </div>
+            <div class="info-card">
+                <div class="info-title">Uploaded Files</div>
+                <div class="info-value" id="panelFileList">None</div>
+            </div>
+        </div>
+    </aside>
+
+    <script>
+        // State Management
+        let messages = [];
+        let uploadedFiles = [];
+        let isGenerating = false;
+        let timerInterval = null;
+        let startTime = 0;
+        let currentConversationId = null;
+        let abortController = null;
+
+        const chatInput = document.getElementById('chatInput');
+        const chatContainer = document.getElementById('chatContainer');
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const sendBtn = document.getElementById('sendBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const fileChips = document.getElementById('fileChips');
+        const modelSelector = document.getElementById('modelSelector');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRecentChats();
+            chatInput.focus();
+            
+            // Auto-resize textarea
+            chatInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+
+            // Enter to send
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
+        });
+
+        // UI Toggles
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        function toggleRightPanel() {
+            document.getElementById('rightPanel').classList.toggle('collapsed');
+        }
+
+        function toggleDarkMode() {
+            const body = document.body;
+            const themeIcon = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+            
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+                themeIcon.className = 'fas fa-moon';
+                themeText.innerText = 'Dark Mode';
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                themeIcon.className = 'fas fa-sun';
+                themeText.innerText = 'Light Mode';
+            }
+        }
+
+        // File Handling
+        function triggerFileUpload() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileSelection(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const fileData = {
+                        name: file.name,
+                        size: (file.size / 1024).toFixed(1) + ' KB',
+                        type: file.type.startsWith('image/') ? 'image' : 'text',
+                        data: e.target.result
+                    };
+                    uploadedFiles.push(fileData);
+                    renderFileChips();
+                };
+                if (file.type.startsWith('image/')) {
+                    reader.readAsDataURL(file);
+                } else {
+                    reader.readAsText(file);
+                }
+            }
+        }
+
+        function renderFileChips() {
+            if (uploadedFiles.length > 0) {
+                fileChips.style.display = 'flex';
+                fileChips.innerHTML = uploadedFiles.map((f, i) => `
+                    <div class="file-chip">
+                        <i class="fas ${f.type === 'image' ? 'fa-image' : 'fa-file-alt'}"></i>
+                        <span>${f.name}</span>
+                        <i class="fas fa-times file-chip-remove" onclick="removeFile(${i})"></i>
+                    </div>
+                `).join('');
+            } else {
+                fileChips.style.display = 'none';
+            }
+        }
+
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            renderFileChips();
+        }
+
+        // Chat Functionality
+        async function handleSend() {
+            const content = chatInput.value.trim();
+            if ((!content && uploadedFiles.length === 0) || isGenerating) return;
+
+            // Clear UI
+            welcomeScreen.style.display = 'none';
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+            
+            const userMessage = {
+                id: Date.now().toString(),
+                role: 'user',
+                content: content,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                files: [...uploadedFiles]
+            };
+
+            messages.push(userMessage);
+            renderMessage(userMessage);
+            scrollToBottom();
+
+            const currentFiles = [...uploadedFiles];
+            uploadedFiles = [];
+            renderFileChips();
+
+            startAssistantThinking();
+            
+            try {
+                isGenerating = true;
+                updateButtons();
+                
+                abortController = new AbortController();
+                
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: content,
+                        files: currentFiles,
+                        model: modelSelector.value
+                    }),
+                    signal: abortController.signal
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to connect to server');
+                }
+
+                // Create AI message placeholder immediately so we have it
+                const aiMsgId = 'ai-' + Date.now();
+                const aiMessage = {
+                    id: aiMsgId,
+                    role: 'assistant',
+                    content: '',
+                    reasoning: '',
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    modelUsed: '',
+                    status: 'streaming'
+                };
+                
+                const wrapper = renderMessagePlaceholder(aiMessage);
+                const bubble = wrapper.querySelector('.message-bubble');
+                const meta = wrapper.querySelector('.message-meta');
+                
+                // Hide wrapper initially until we have content to avoid blank bubble
+                wrapper.style.display = 'none';
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullContent = '';
+                let fullReasoning = '';
+                let buffer = '';
+                let hasStarted = false;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    if (!hasStarted) {
+                        stopAssistantThinking();
+                        wrapper.style.display = 'block';
+                        hasStarted = true;
+                    }
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); 
+                    
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        try {
+                            const data = JSON.parse(line);
+                            
+                            if (data.status === 'start') {
+                                aiMessage.modelUsed = data.modelUsed;
+                                aiMessage.selectionReason = data.selectionReason;
+                                currentConversationId = data.conversation_id;
+                                updateMessageMeta(meta, aiMessage);
+                            } else if (data.status === 'done') {
+                                aiMessage.status = 'done';
+                                aiMessage.elapsedTime = data.elapsedTime;
+                                updateMessageMeta(meta, aiMessage);
+                                loadRecentChats();
+                            } else if (data.content) {
+                                fullContent += data.content;
+                                aiMessage.content = fullContent;
+                                updateMessageContent(bubble, aiMessage);
+                            } else if (data.reasoning) {
+                                fullReasoning += data.reasoning;
+                                aiMessage.reasoning = fullReasoning;
+                                updateMessageContent(bubble, aiMessage);
+                            } else if (data.error) {
+                                renderError(data.error);
+                            }
+                        } catch (e) {
+                            console.error("Error parsing chunk", e, line);
+                        }
+                    }
+                    scrollToBottom();
+                }
+
+                // Process any remaining data in buffer
+                if (buffer.trim()) {
+                    try {
+                        const data = JSON.parse(buffer);
+                        // handle same as above...
+                    } catch(e) {}
+                }
+
+                messages.push(aiMessage);
+                Prism.highlightAllUnder(wrapper);
+
+            } catch (error) {
+                stopAssistantThinking();
+                if (error.name === 'AbortError') {
+                    console.log('Fetch aborted');
+                } else {
+                    let friendlyMessage = error.message;
+                    if (friendlyMessage.includes('429')) {
+                        friendlyMessage = "Rate limit reached (429). The AI servers are currently busy. Please wait a moment and try again.";
+                    }
+                    renderError(friendlyMessage);
+                }
+            } finally {
+                isGenerating = false;
+                updateButtons();
+                scrollToBottom();
+            }
+        }
+
+        function renderMessagePlaceholder(msg) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `message-wrapper ${msg.role}`;
+            wrapper.id = msg.id;
+            
+            wrapper.innerHTML = `
+                <div class="message-bubble">
+                    <div class="content-text"></div>
+                </div>
+                <div class="message-meta">
+                    <span class="message-model"><i class="fas fa-robot"></i> ${msg.modelUsed || 'Connecting...'}</span>
+                    <span><i class="far fa-clock"></i> ${msg.timestamp}</span>
+                </div>
+            `;
+            
+            chatContainer.appendChild(wrapper);
+            return wrapper;
+        }
+
+        function updateMessageContent(bubble, msg) {
+            const reasoningHtml = msg.reasoning ? `
+                <details class="reasoning-details" style="margin-bottom: 12px;" open>
+                    <summary style="font-size: 13px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-brain"></i> Thinking...
+                    </summary>
+                    <div style="font-size: 13px; color: var(--text-muted); padding: 12px; background: rgba(0,0,0,0.02); border-radius: 8px; margin-top: 8px; border-left: 3px solid var(--border-color); white-space: pre-wrap;">${msg.reasoning}</div>
+                </details>
+            ` : '';
+
+            const contentHtml = marked.parse(msg.content || '');
+            bubble.innerHTML = `${reasoningHtml}<div class="content-text">${contentHtml}</div>`;
+        }
+
+        function updateMessageMeta(meta, msg) {
+            meta.innerHTML = `
+                <span class="message-model">
+                    <i class="fas fa-robot"></i> ${msg.modelUsed || ''}
+                    ${msg.selectionReason ? `<span style="font-weight: 400; opacity: 0.8; margin-left: 8px;">• ${msg.selectionReason}</span>` : ''}
+                </span>
+                <span><i class="far fa-clock"></i> ${msg.timestamp}</span>
+                ${msg.elapsedTime ? `<span><i class="fas fa-bolt"></i> ${msg.elapsedTime}</span>` : ''}
+                ${msg.status === 'done' ? `<i class="far fa-copy cursor-pointer" title="Copy response" onclick="copyText(this)"></i>` : ''}
+            `;
+        }
+
+        function startAssistantThinking() {
+            const container = document.createElement('div');
+            container.className = 'message-wrapper assistant';
+            container.id = 'assistantThinking';
+            
+            container.innerHTML = `
+                <div class="thinking-container">
+                    <div class="thinking-header">
+                        <div class="thinking-dots">
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                        <span>TirthoAI is thinking...</span>
+                    </div>
+                    <div class="thinking-timer" id="thinkingTimer">00:00</div>
+                    <div class="activity-steps">
+                        <div class="step done"><i class="fas fa-check-circle"></i> Request received</div>
+                        <div class="step active"><i class="fas fa-circle-notch fa-spin"></i> Selecting best model</div>
+                        <div class="step"><i class="far fa-circle"></i> Generating response</div>
+                    </div>
+                </div>
+            `;
+            
+            chatContainer.appendChild(container);
+            
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const secs = (elapsed % 60).toString().padStart(2, '0');
+                document.getElementById('thinkingTimer').innerText = `${mins}:${secs}`;
+            }, 1000);
+            
+            scrollToBottom();
+        }
+
+        function stopAssistantThinking() {
+            clearInterval(timerInterval);
+            const el = document.getElementById('assistantThinking');
+            if (el) el.remove();
+        }
+
+        function stopGeneration() {
+            if (abortController) {
+                abortController.abort();
+                isGenerating = false;
+                stopAssistantThinking();
+                updateButtons();
+                renderError("Generation stopped by user.");
+            }
+        }
+
+        function updateButtons() {
+            if (isGenerating) {
+                sendBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+            } else {
+                sendBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+            }
+        }
+
+        function renderMessage(msg) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `message-wrapper ${msg.role}`;
+            
+            let content = msg.content;
+            if (Array.isArray(content)) {
+                content = content.map(c => c.type === 'text' ? c.text : '').join('\n');
+            }
+            
+            const htmlContent = marked.parse(content);
+            
+            const metaHtml = msg.role === 'assistant' ? `
+                <div class="message-meta">
+                    <span class="message-model">
+                        <i class="fas fa-robot"></i> ${msg.modelUsed || ''}
+                        ${msg.selectionReason ? `<span style="font-weight: 400; opacity: 0.8; margin-left: 8px;">• ${msg.selectionReason}</span>` : ''}
+                    </span>
+                    <span><i class="far fa-clock"></i> ${msg.timestamp}</span>
+                    ${msg.elapsedTime ? `<span><i class="fas fa-bolt"></i> ${msg.elapsedTime}</span>` : ''}
+                    <i class="far fa-copy cursor-pointer" title="Copy response" onclick="copyText(this)"></i>
+                </div>
+            ` : `
+                <div class="message-meta">
+                    <span>${msg.timestamp}</span>
+                </div>
+            `;
+            
+            const reasoningHtml = msg.reasoning ? `
+                <details class="reasoning-details" style="margin-bottom: 12px;">
+                    <summary style="font-size: 13px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-brain"></i> View Thought Process
+                    </summary>
+                    <div style="font-size: 13px; color: var(--text-muted); padding: 12px; background: rgba(0,0,0,0.02); border-radius: 8px; margin-top: 8px; border-left: 3px solid var(--border-color); white-space: pre-wrap;">${msg.reasoning}</div>
+                </details>
+            ` : '';
+            
+            wrapper.innerHTML = `
+                <div class="message-bubble">
+                    ${reasoningHtml}
+                    ${htmlContent}
+                    ${msg.files && msg.files.length > 0 ? renderAttachedFiles(msg.files) : ''}
+                </div>
+                ${metaHtml}
+            `;
+            
+            chatContainer.appendChild(wrapper);
+            Prism.highlightAllUnder(wrapper);
+        }
+
+        function renderAttachedFiles(files) {
+            return `
+                <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                    ${files.map(f => `
+                        <div class="file-chip" style="background: rgba(0,0,0,0.05)">
+                            <i class="fas ${f.type === 'image' ? 'fa-image' : 'fa-file-alt'}"></i>
+                            <span>${f.name}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderError(err) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'message-wrapper assistant';
+            wrapper.innerHTML = `<div class="message-bubble" style="background: #fee2e2; border-color: #fca5a5; color: #991b1b;">Error: ${err}</div>`;
+            chatContainer.appendChild(wrapper);
+            scrollToBottom();
+        }
+
+        function useSuggestion(text) {
+            chatInput.value = text;
+            chatInput.style.height = 'auto';
+            chatInput.style.height = chatInput.scrollHeight + 'px';
+            chatInput.focus();
+        }
+
+        function startNewChat() {
+            messages = [];
+            chatContainer.innerHTML = '';
+            chatContainer.appendChild(welcomeScreen);
+            welcomeScreen.style.display = 'block';
+            currentConversationId = null;
+            chatInput.focus();
+        }
+
+        async function resetSystem() {
+            if (!confirm('This will clear all chat history and cached files. Continue?')) return;
+            
+            try {
+                const response = await fetch('/reset', { method: 'POST' });
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to reset system cache.');
+                }
+            } catch (error) {
+                console.error('Reset error:', error);
+                alert('An error occurred while resetting.');
+            }
+        }
+
+        function renderError(message) {
+            // Remove the 'Thinking' state
+            stopAssistantThinking();
+            
+            // Remove any blank bubbles that might have been created
+            const wrappers = document.querySelectorAll('.message-wrapper.assistant');
+            wrappers.forEach(w => {
+                const bubble = w.querySelector('.message-bubble');
+                // If bubble is empty or just has a hidden content-text
+                if (bubble && !bubble.innerText.trim() && w.id !== 'assistantThinking') {
+                    w.remove();
+                }
+            });
+
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'message-wrapper assistant';
+            errorDiv.innerHTML = `
+                <div class="message-bubble" style="background: #fef2f2; border: 1px solid #fee2e2; color: #991b1b; padding: 16px; border-radius: 12px; margin-top: 10px; max-width: 80%;">
+                    <div style="display: flex; align-items: center; gap: 10px; font-weight: 600;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>${message.includes('timeout') ? 'Connection Timeout' : 'System Error'}</span>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 14px; opacity: 0.9;">${message}</div>
+                    <div style="margin-top: 12px; font-size: 12px; color: #7f1d1d;">Tip: Try a different model or use the "Lean Cache" button if this persists.</div>
+                </div>
+            `;
+            chatContainer.appendChild(errorDiv);
+            scrollToBottom();
+        }
+
+        async function loadRecentChats() {
+            try {
+                const response = await fetch('/conversations');
+                const chats = await response.json();
+                const list = document.getElementById('recentChats');
+                list.innerHTML = chats.map(c => `
+                    <div class="nav-item ${c.id === currentConversationId ? 'active' : ''}" onclick="selectConversation('${c.id}')">
+                        <i class="far fa-comment"></i>
+                        <span>${c.title}</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error("Failed to load chats", e);
+            }
+        }
+
+        async function selectConversation(id) {
+            currentConversationId = id;
+            welcomeScreen.style.display = 'none';
+            chatContainer.innerHTML = '<div class="text-center p-4">Loading conversation...</div>';
+            
+            try {
+                const response = await fetch(`/conversation/${id}`);
+                const data = await response.json();
+                chatContainer.innerHTML = '';
+                messages = data.messages;
+                messages.forEach(msg => {
+                    renderMessage({
+                        ...msg,
+                        timestamp: new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    });
+                });
+                loadRecentChats();
+                scrollToBottom();
+            } catch (e) {
+                renderError("Failed to load conversation.");
+            }
+        }
+
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function copyText(el) {
+            const text = el.closest('.message-wrapper').querySelector('.message-bubble').innerText;
+            navigator.clipboard.writeText(text);
+            el.className = 'fas fa-check';
+            setTimeout(() => el.className = 'far fa-copy', 2000);
+        }
+    </script>
+</body>
+</html>

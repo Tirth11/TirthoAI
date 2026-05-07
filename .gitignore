@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+
+# Environment variables (CRITICAL)
+.env
+
+# Logs
+*.log
+
+# Uploads
+uploads/
+
+# Binaries and Large files
+*.zip
+*.exe
+ngrok-v3-stable-windows-amd64/
+
+# Scripts
+*.bat
+*.ps1
+!render.yaml
+
+# OS
+.DS_Store
+Thumbs.db

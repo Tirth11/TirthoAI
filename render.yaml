@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: tirtho-ai-chatbot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DEEPSEEK_PRO_KEY
+        sync: false
+      - key: DEEPSEEK_FLASH_KEY
+        sync: false
+      - key: GLM_47_KEY
+        sync: false
+      - key: KIMI_K2_KEY
+        sync: false
+      - key: KIMI_26_KEY
+        sync: false
+      - key: MINIMAX_M27_KEY
+        sync: false
