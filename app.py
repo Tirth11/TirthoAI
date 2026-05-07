@@ -372,5 +372,6 @@ def upload_file():
         return jsonify({'error': 'File type not supported for reading'}), 400
 
 if __name__ == '__main__':
-    port = int(os.getenv("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=os.getenv("DEBUG", "False") == "True")
+    # Use the port assigned by Render, or default to 5000 for local testing
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=os.environ.get("DEBUG", "False").lower() == "true")
