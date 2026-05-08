@@ -57,7 +57,7 @@ MODEL_CONFIGS = {
         "temperature": 1,
         "max_tokens": 16384,
         "supports_vision": False,
-        "extra_body": {"chat_template_kwargs": {"thinking": True, "reasoning_effort": "high"}}
+        "extra_body": {"chat_template_kwargs": {"thinking": True}}
     },
     "GLM 4.7": {
         "model": "z-ai/glm4.7",
