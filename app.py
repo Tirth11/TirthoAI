@@ -92,6 +92,83 @@ def get_client(actual_label):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def auto_select_model(text, files_data=None):
+    """
+    Intelligently select the best model based on prompt content.
+    Returns (model_label, reason_string).
+    """
+    t = text.lower().strip()
+    word_count = len(t.split())
+
+    # --- Image/vision input -> DeepSeek Pro (only vision model) ---
+    if files_data and any(f.get('type') == 'image' for f in files_data):
+        return "DeepSeek Pro", "🔍 DeepSeek Pro selected for image analysis"
+
+    # --- Simple greetings / conversational / very short prompts -> DeepSeek Flash ---
+    greet_patterns = ["hi", "hello", "hey", "how are you", "what's up", "whats up",
+                      "good morning", "good night", "thanks", "thank you", "ok", "okay", "bye"]
+    if word_count <= 5 and any(t.startswith(g) or t == g for g in greet_patterns):
+        return "DeepSeek Flash", "⚡ DeepSeek Flash selected for quick conversation"
+
+    # --- Math / logic / deep reasoning -> Kimi K2 ---
+    math_keywords = [
+        "prove", "proof", "theorem", "calculate", "integral", "derivative", "equation",
+        "algebra", "geometry", "calculus", "statistics", "probability", "matrix",
+        "algorithm", "complexity", "big o", "dynamic programming", "recursion",
+        "logic", "reasoning", "deduce", "infer", "step by step", "step-by-step",
+        "how does", "why does", "explain why", "solve", "evaluate", "optimize"
+    ]
+    if any(kw in t for kw in math_keywords):
+        return "Kimi K2", "🧠 Kimi K2 selected for deep reasoning & math"
+
+    # --- Code / programming -> GLM 4.7 ---
+    code_keywords = [
+        "code", "program", "script", "function", "class", "debug", "error", "bug",
+        "python", "javascript", "java", "c++", "c#", "typescript", "react", "sql",
+        "api", "endpoint", "database", "html", "css", "flask", "django", "fastapi",
+        "implement", "refactor", "fix the", "write a", "create a function",
+        "unit test", "deploy", "docker", "kubernetes", "git", "pull request"
+    ]
+    if any(kw in t for kw in code_keywords):
+        return "GLM 4.7", "💻 GLM 4.7 selected for coding tasks"
+
+    # --- Creative / writing / storytelling -> Kimi 2.6 ---
+    creative_keywords = [
+        "write a story", "poem", "creative", "essay", "draft", "letter",
+        "blog post", "article", "narrative", "fiction", "character", "plot",
+        "song", "lyrics", "script", "dialogue", "brainstorm", "idea",
+        "slogan", "caption", "tweet", "social media", "marketing copy"
+    ]
+    if any(kw in t for kw in creative_keywords):
+        return "Kimi 2.6", "✍️ Kimi 2.6 selected for creative writing"
+
+    # --- Summarization / translation / multilingual -> Minimax M2.7 ---
+    summary_keywords = [
+        "summarize", "summary", "translate", "translation", "paraphrase",
+        "tldr", "key points", "main points", "extract", "list the",
+        "what are the", "overview", "brief", "highlight"
+    ]
+    if any(kw in t for kw in summary_keywords):
+        return "Minimax M2.7", "📋 Minimax M2.7 selected for summarization"
+
+    # --- Analysis / research / comparison -> DeepSeek Pro ---
+    analysis_keywords = [
+        "analyze", "analysis", "compare", "comparison", "research", "explain",
+        "difference between", "pros and cons", "advantages", "disadvantages",
+        "review", "evaluate", "assess", "what is", "who is", "how to",
+        "best way", "recommend", "suggest", "plan", "strategy"
+    ]
+    if any(kw in t for kw in analysis_keywords):
+        return "DeepSeek Pro", "🔬 DeepSeek Pro selected for analysis & research"
+
+    # --- Short/simple prompts -> DeepSeek Flash ---
+    if word_count <= 10:
+        return "DeepSeek Flash", "⚡ DeepSeek Flash selected for quick responses"
+
+    # --- Default: DeepSeek Pro for everything else ---
+    return "DeepSeek Pro", "🤖 DeepSeek Pro selected for general intelligence"
+
+
 def create_conversation():
     conv_id = str(uuid.uuid4())[:8]
     conversations[conv_id] = {
@@ -224,16 +301,7 @@ def chat():
     })
     
     if selected_label == "Auto":
-        lower_text = message_text.lower()
-        if "fast" in lower_text or "quick" in lower_text:
-            actual_label = "DeepSeek Flash"
-            selection_reason = "Selected DeepSeek Flash for speed"
-        elif "think" in lower_text or "reason" in lower_text:
-            actual_label = "Kimi K2"
-            selection_reason = "Selected Kimi K2 for reasoning"
-        else:
-            actual_label = "DeepSeek Pro"
-            selection_reason = "Selected DeepSeek Pro for general intelligence"
+        actual_label, selection_reason = auto_select_model(message_text, files_data)
     else:
         actual_label = selected_label
         selection_reason = None
