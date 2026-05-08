@@ -38,7 +38,7 @@ def chat():
         
         # Get response from Kimi K2 with streaming
         completion = client.chat.completions.create(
-            model="moonshotai/kimi-k2-thinking",
+            model="meta/llama-3.3-70b-instruct",
             messages=conversation_history,
             temperature=1,
             top_p=0.9,

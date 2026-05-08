@@ -171,7 +171,7 @@ def chat():
         
         # Get response from DeepSeek
         completion = client.chat.completions.create(
-            model="deepseek-ai/deepseek-v4-pro",
+            model="meta/llama-3.3-70b-instruct",
             messages=conversations[current_conversation_id]['messages'],
             temperature=1,
             top_p=0.95,

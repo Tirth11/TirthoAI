@@ -1,12 +1,16 @@
 from flask import Flask, render_template, request, jsonify
 from openai import OpenAI
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
 # Initialize OpenAI client with Nvidia API for DeepSeek v4-flash
 client = OpenAI(
     base_url="https://integrate.api.nvidia.com/v1",
-    api_key="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"
+    api_key=os.getenv("KIMI_26_KEY")
 )
 
 # Store conversation history
@@ -38,7 +42,7 @@ def chat():
         
         # Get response from DeepSeek v4-flash
         completion = client.chat.completions.create(
-            model="deepseek-ai/deepseek-v4-flash",
+            model="meta/llama-3.3-70b-instruct",
             messages=conversation_history,
             temperature=1,
             top_p=0.95,

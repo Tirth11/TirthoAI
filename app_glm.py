@@ -39,7 +39,7 @@ def chat():
         
         # Get response from GLM4.7 with streaming
         completion = client.chat.completions.create(
-            model="z-ai/glm4.7",
+            model="meta/llama-3.3-70b-instruct",
             messages=conversation_history,
             temperature=1,
             top_p=1,

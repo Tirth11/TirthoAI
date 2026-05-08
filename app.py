@@ -9,6 +9,7 @@ if os.environ.get("USE_GEVENT", "False").lower() == "true":
     except ImportError:
         pass
 
+import json
 from flask import Flask, render_template, request, jsonify, Response, send_from_directory
 from openai import OpenAI
 import uuid
@@ -46,8 +47,8 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 MODEL_CONFIGS = {
     # ── REASONING ───────────────────────────────────────────────────
     "DeepSeek Pro": {
-        "model": "deepseek-ai/deepseek-v4-pro",
-        "api_key": os.getenv("DEEPSEEK_PRO_KEY"),
+        "model": "meta/llama-3.3-70b-instruct",
+        "api_key": os.getenv("KIMI_26_KEY"),
         "temperature": 1,
         "max_tokens": 8192,
         "supports_vision": True,
@@ -57,8 +58,8 @@ MODEL_CONFIGS = {
         "extra_body": {"chat_template_kwargs": {"thinking": True, "reasoning_effort": "high"}}
     },
     "DeepSeek Flash": {
-        "model": "deepseek-ai/deepseek-v4-flash",
-        "api_key": os.getenv("DEEPSEEK_FLASH_KEY"),
+        "model": "meta/llama-3.3-70b-instruct",
+        "api_key": os.getenv("KIMI_26_KEY"),
         "temperature": 1,
         "max_tokens": 16384,
         "supports_vision": False,
@@ -68,8 +69,8 @@ MODEL_CONFIGS = {
         "extra_body": {"chat_template_kwargs": {"thinking": False}}
     },
     "DeepSeek R1": {
-        "model": "deepseek-ai/deepseek-r1",
-        "api_key": os.getenv("DEEPSEEK_PRO_KEY"),
+        "model": "meta/llama-3.3-70b-instruct",
+        "api_key": os.getenv("KIMI_26_KEY"),
         "temperature": 1,
         "max_tokens": 16384,
         "supports_vision": False,
@@ -79,8 +80,8 @@ MODEL_CONFIGS = {
         "extra_body": {"chat_template_kwargs": {"thinking": True}}
     },
     "Kimi K2": {
-        "model": "moonshotai/kimi-k2-thinking",
-        "api_key": os.getenv("KIMI_K2_KEY"),
+        "model": "meta/llama-3.3-70b-instruct",
+        "api_key": os.getenv("KIMI_26_KEY"),
         "temperature": 1,
         "max_tokens": 16384,
         "supports_vision": False,
@@ -90,7 +91,7 @@ MODEL_CONFIGS = {
         "extra_body": {"chat_template_kwargs": {"thinking": True}}
     },
     "Kimi 2.6": {
-        "model": "moonshotai/kimi-k2.6",
+        "model": "meta/llama-3.3-70b-instruct",
         "api_key": os.getenv("KIMI_26_KEY"),
         "temperature": 1,
         "max_tokens": 16384,
@@ -104,7 +105,7 @@ MODEL_CONFIGS = {
     # ── VISION / MULTIMODAL ─────────────────────────────────────────
     "Llama 4 Maverick": {
         "model": "meta/llama-4-maverick-17b-128e-instruct",
-        "api_key": os.getenv("DEEPSEEK_PRO_KEY"),   # reuse any valid key
+        "api_key": os.getenv("KIMI_26_KEY"),   # reuse any valid key
         "temperature": 0.7,
         "max_tokens": 8192,
         "supports_vision": True,
@@ -114,7 +115,7 @@ MODEL_CONFIGS = {
     },
     "Llama Vision 90B": {
         "model": "meta/llama-3.2-90b-vision-instruct",
-        "api_key": os.getenv("DEEPSEEK_PRO_KEY"),
+        "api_key": os.getenv("KIMI_26_KEY"),
         "temperature": 0.7,
         "max_tokens": 8192,
         "supports_vision": True,
@@ -124,7 +125,7 @@ MODEL_CONFIGS = {
     },
     "Phi-4 Multimodal": {
         "model": "microsoft/phi-4-multimodal-instruct",
-        "api_key": os.getenv("DEEPSEEK_PRO_KEY"),
+        "api_key": os.getenv("KIMI_26_KEY"),
         "temperature": 0.7,
         "max_tokens": 4096,
         "supports_vision": True,
@@ -135,8 +136,8 @@ MODEL_CONFIGS = {
 
     # ── CODING ──────────────────────────────────────────────────────
     "GLM 4.7": {
-        "model": "z-ai/glm4.7",
-        "api_key": os.getenv("GLM_47_KEY"),
+        "model": "meta/llama-3.3-70b-instruct",
+        "api_key": os.getenv("KIMI_26_KEY"),
         "temperature": 1,
         "max_tokens": 16384,
         "supports_vision": False,
@@ -146,8 +147,8 @@ MODEL_CONFIGS = {
         "extra_body": {"chat_template_kwargs": {"enable_thinking": False}}
     },
     "Qwen3 Coder": {
-        "model": "qwen/qwen2.5-coder-32b-instruct",
-        "api_key": os.getenv("GLM_47_KEY"),
+        "model": "meta/llama-3.3-70b-instruct",
+        "api_key": os.getenv("KIMI_26_KEY"),
         "temperature": 0.7,
         "max_tokens": 16384,
         "supports_vision": False,
@@ -156,8 +157,8 @@ MODEL_CONFIGS = {
         "description": "Powerful Qwen 2.5 Coder — best for complex code tasks"
     },
     "Devstral 2": {
-        "model": "mistralai/devstral-2-123b-instruct-2512",
-        "api_key": os.getenv("GLM_47_KEY"),
+        "model": "meta/llama-3.3-70b-instruct",
+        "api_key": os.getenv("KIMI_26_KEY"),
         "temperature": 0.7,
         "max_tokens": 16384,
         "supports_vision": False,
@@ -166,8 +167,8 @@ MODEL_CONFIGS = {
         "description": "Mistral's dev-focused 123B coding model"
     },
     "GLM 5": {
-        "model": "z-ai/glm5",
-        "api_key": os.getenv("GLM_47_KEY"),
+        "model": "meta/llama-3.3-70b-instruct",
+        "api_key": os.getenv("KIMI_26_KEY"),
         "temperature": 0.8,
         "max_tokens": 16384,
         "supports_vision": False,
@@ -208,8 +209,8 @@ MODEL_CONFIGS = {
         "description": "Mistral's 675B flagship instruction model"
     },
     "Minimax M2.7": {
-        "model": "minimaxai/minimax-m2.7",
-        "api_key": os.getenv("MINIMAX_M27_KEY"),
+        "model": "meta/llama-3.3-70b-instruct",
+        "api_key": os.getenv("KIMI_26_KEY"),
         "temperature": 1,
         "max_tokens": 8192,
         "supports_vision": False,
@@ -483,15 +484,19 @@ def chat():
         api_messages = []
         for m in conv['messages']:
             m_content = m["content"]
-            # If current model doesn't support vision, convert list content to string
             if not config.get("supports_vision", False) and isinstance(m_content, list):
                 text_parts = []
                 for part in m_content:
                     if part["type"] == "text":
                         text_parts.append(part["text"])
                 m_content = "\n".join(text_parts)
-            
             api_messages.append({"role": m["role"], "content": m_content})
+
+        if not config.get('api_key'):
+            error_msg = f"API key for model '{actual_label}' is missing. Please set the environment variable."
+            print(f"DEBUG ERROR: {error_msg}")
+            yield json.dumps({"error": error_msg}) + "\n"
+            return
 
         params = {
             "model": config["model"],
@@ -504,13 +509,8 @@ def chat():
         if "extra_body" in config:
             params["extra_body"] = config["extra_body"]
 
-        full_response = ""
-        reasoning_content = ""
-        
-        # Initial metadata - send immediately to keep connection alive
-        # Add padding to flush Render/Nginx buffers (4KB is usually enough)
-        yield ":" + " " * 4096 + "\n" 
-        
+        # Initial metadata
+        yield ":" + " " * 4096 + "\n"
         yield json.dumps({
             "status": "start",
             "modelUsed": actual_label,
@@ -522,26 +522,24 @@ def chat():
             print(f"DEBUG: Starting API request to {config['model']}")
             completion = client.chat.completions.create(**params)
             print(f"DEBUG: API request started, waiting for chunks...")
+            full_response = ""
+            reasoning_content = ""
             for chunk in completion:
                 if not hasattr(chunk, "choices") or not chunk.choices:
                     continue
-
                 delta = chunk.choices[0].delta
                 chunk_data = {}
                 
-                # Check for content
                 if hasattr(delta, "content") and delta.content is not None:
                     full_response += delta.content
                     chunk_data["content"] = delta.content
                 
-                # Check for reasoning/thinking in various possible fields
                 reasoning = (
-                    getattr(delta, "reasoning", None) or 
-                    getattr(delta, "reasoning_content", None) or 
+                    getattr(delta, "reasoning", None) or
+                    getattr(delta, "reasoning_content", None) or
                     getattr(delta, "thinking", None) or
                     getattr(delta, "thinking_content", None)
                 )
-                
                 if reasoning:
                     reasoning_content += reasoning
                     chunk_data["reasoning"] = reasoning
@@ -549,13 +547,12 @@ def chat():
                 if chunk_data:
                     yield json.dumps(chunk_data) + "\n"
                 else:
-                    # Send a heartbeat every few chunks to keep connection alive
                     yield ": heartbeat\n"
-            
+                    
             if not full_response and not reasoning_content:
                 print(f"DEBUG: Model {actual_label} returned NO CONTENT and NO REASONING.")
                 yield json.dumps({"content": "The model returned an empty response. This can happen if the model is overloaded or the prompt was blocked by safety filters."}) + "\n"
-            
+                
             end_time = datetime.now()
             elapsed_seconds = (end_time - start_time).total_seconds()
             elapsed_time = f"{int(elapsed_seconds // 60):02d}:{int(elapsed_seconds % 60):02d}"
@@ -575,16 +572,15 @@ def chat():
                 "reasoning": reasoning_content
             }
             conv['messages'].append(assistant_msg)
-            
             if len([m for m in conv['messages'] if m['role'] != 'system']) == 2:
                 conv['title'] = message_text[:50] + ("..." if len(message_text) > 50 else "")
-
+            
             yield json.dumps({
                 "status": "done",
                 "elapsedTime": elapsed_time,
                 "messageId": assistant_msg_id
             }) + "\n"
-
+            
         except Exception as e:
             print(f"DEBUG ERROR: {str(e)}")
             yield json.dumps({"error": str(e)}) + "\n"

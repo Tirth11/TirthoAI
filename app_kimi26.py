@@ -41,7 +41,7 @@ def chat():
         }
         
         payload = {
-            "model": "moonshotai/kimi-k2.6",
+            "model": "meta/llama-3.3-70b-instruct",
             "messages": conversation_history,
             "max_tokens": 16384,
             "temperature": 1.00,

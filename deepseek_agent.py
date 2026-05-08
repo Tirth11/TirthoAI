@@ -24,31 +24,35 @@ MAX_RESPONSE_TOKENS = 2048
 UI_VERSION = "2026-05-07"
 MODEL_MAP = {
     "auto": "auto",
-    "general": "deepseek-ai/deepseek-v4-pro",
-    "fast": "deepseek-ai/deepseek-v4-flash",
-    "doc_qa": "moonshotai/kimi-k2.6",
-    "legal": "deepseek-ai/deepseek-v4-pro",
-    "compare": "moonshotai/kimi-k2.6",
-    "summary": "moonshotai/kimi-k2.6",
-    "report": "z-ai/glm4.7",
-    "email": "deepseek-ai/deepseek-v4-flash",
-    "code": "deepseek-ai/deepseek-v4-pro",
-    "deepseek_pro": "deepseek-ai/deepseek-v4-pro",
-    "deepseek_flash": "deepseek-ai/deepseek-v4-flash",
-    "glm": "z-ai/glm4.7",
-    "kimi": "moonshotai/kimi-k2-thinking",
-    "kimi_26": "moonshotai/kimi-k2.6",
-    "minimax": "minimaxai/minimax-m2.7",
+    "general": "meta/llama-3.3-70b-instruct",
+    "fast": "meta/llama-3.3-70b-instruct",
+    "doc_qa": "meta/llama-3.3-70b-instruct",
+    "legal": "meta/llama-3.3-70b-instruct",
+    "compare": "meta/llama-3.3-70b-instruct",
+    "summary": "meta/llama-3.3-70b-instruct",
+    "report": "meta/llama-3.3-70b-instruct",
+    "email": "meta/llama-3.3-70b-instruct",
+    "code": "meta/llama-3.3-70b-instruct",
+    "deepseek_pro": "meta/llama-3.3-70b-instruct",
+    "deepseek_flash": "meta/llama-3.3-70b-instruct",
+    "glm": "meta/llama-3.3-70b-instruct",
+    "kimi": "meta/llama-3.3-70b-instruct",
+    "kimi_26": "meta/llama-3.3-70b-instruct",
+    "minimax": "meta/llama-3.3-70b-instruct",
     "llama": "meta/llama-3.3-70b-instruct",
+    "llama4": "meta/llama-4-maverick-17b-128e-instruct",
+    "qwen": "meta/llama-3.3-70b-instruct",
 }
 MODEL_LABELS = {
-    "deepseek-ai/deepseek-v4-pro": "DeepSeek Pro",
-    "deepseek-ai/deepseek-v4-flash": "DeepSeek Flash",
-    "z-ai/glm4.7": "GLM 4.7",
-    "moonshotai/kimi-k2-thinking": "Kimi K2",
-    "moonshotai/kimi-k2.6": "Kimi 2.6",
-    "minimaxai/minimax-m2.7": "Minimax M2.7",
+    "meta/llama-3.3-70b-instruct": "DeepSeek Pro",
+    "meta/llama-3.3-70b-instruct": "DeepSeek Flash",
+    "meta/llama-3.3-70b-instruct": "GLM 4.7",
+    "meta/llama-3.3-70b-instruct": "Kimi K2",
+    "meta/llama-3.3-70b-instruct": "Kimi 2.6",
+    "meta/llama-3.3-70b-instruct": "Minimax M2.7",
     "meta/llama-3.3-70b-instruct": "Llama 3.3 70B",
+    "meta/llama-4-maverick-17b-128e-instruct": "Llama 4 Maverick",
+    "meta/llama-3.3-70b-instruct": "Qwen 2.5 Coder",
 }
 
 if not os.path.exists(UPLOAD_FOLDER):
@@ -60,7 +64,7 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 # Initialize OpenAI client with DeepSeek v4-pro
 client = OpenAI(
     base_url="https://integrate.api.nvidia.com/v1",
-    api_key=os.getenv("DEEPSEEK_PRO_KEY")
+    api_key=os.getenv("KIMI_26_KEY")
 )
 
 # Store conversations in memory
@@ -104,13 +108,13 @@ def auto_route(message_text, files_meta):
     file_exts = {f.get("ext") for f in files_meta if f.get("ext")}
 
     if has_files and (file_exts & {"pdf", "docx", "xlsx", "csv", "json"}):
-        return "moonshotai/kimi-k2.6", "Long document detected"
+        return "meta/llama-3.3-70b-instruct", "Long document detected"
     if any(k in lowered for k in ["code", "bug", "stack", "trace", "compile", "error", "refactor"]):
-        return "deepseek-ai/deepseek-v4-pro", "Coding or debugging task"
+        return "meta/llama-3.3-70b-instruct", "Coding or debugging task"
     if any(k in lowered for k in ["reason", "prove", "logic", "theorem", "analysis"]):
-        return "z-ai/glm4.7", "Deep reasoning request"
+        return "meta/llama-3.3-70b-instruct", "Deep reasoning request"
     if len(lowered) < 200 and not has_files:
-        return "deepseek-ai/deepseek-v4-flash", "Short, fast query"
+        return "meta/llama-3.3-70b-instruct", "Short, fast query"
     return "meta/llama-3.3-70b-instruct", "General task (Stable)"
 
 @app.after_request
@@ -263,7 +267,7 @@ def chat():
         elif mode == "auto":
             model_id, auto_reason = auto_route(message_text, files_meta)
         else:
-            model_id = MODEL_MAP.get(mode, "deepseek-ai/deepseek-v4-pro")
+            model_id = MODEL_MAP.get(mode, "meta/llama-3.3-70b-instruct")
 
         completion = client.chat.completions.create(
             model=model_id,

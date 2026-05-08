@@ -38,7 +38,7 @@ def chat():
         
         # Get response from Minimax M2.7
         completion = client.chat.completions.create(
-            model="minimaxai/minimax-m2.7",
+            model="meta/llama-3.3-70b-instruct",
             messages=conversation_history,
             temperature=1,
             top_p=0.95,
