@@ -64,8 +64,8 @@ MODEL_CONFIGS = {
         "supports_vision": False,
         "category": "reasoning",
         "badge": "⚡",
-        "description": "Ultra-fast DeepSeek with thinking",
-        "extra_body": {"chat_template_kwargs": {"thinking": True}}
+        "description": "Ultra-fast DeepSeek",
+        "extra_body": {"chat_template_kwargs": {"thinking": False}}
     },
     "DeepSeek R1": {
         "model": "deepseek-ai/deepseek-r1",
@@ -146,14 +146,14 @@ MODEL_CONFIGS = {
         "extra_body": {"chat_template_kwargs": {"enable_thinking": False}}
     },
     "Qwen3 Coder": {
-        "model": "qwen/qwen3-coder-480b-a35b-instruct",
+        "model": "qwen/qwen2.5-coder-32b-instruct",
         "api_key": os.getenv("GLM_47_KEY"),
         "temperature": 0.7,
         "max_tokens": 16384,
         "supports_vision": False,
         "category": "coding",
         "badge": "🚀",
-        "description": "480B coder — best for complex code tasks"
+        "description": "Powerful Qwen 2.5 Coder — best for complex code tasks"
     },
     "Devstral 2": {
         "model": "mistralai/devstral-2-123b-instruct-2512",
@@ -450,7 +450,8 @@ def chat():
         if file_data['type'] == 'image':
             message_content.append({"type": "image_url", "image_url": {"url": file_data['data']}})
         elif file_data['type'] == 'text':
-            message_content.append({"type": "text", "text": f"File: {file_data['name']}\nContent:\n{file_data['content']}"})
+            content = file_data.get('content') or file_data.get('data') or ""
+            message_content.append({"type": "text", "text": f"File: {file_data['name']}\nContent:\n{content}"})
     
     conv = conversations[current_conversation_id]
     user_msg_id = str(uuid.uuid4())
