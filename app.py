@@ -36,42 +36,47 @@ MODEL_CONFIGS = {
         "model": "deepseek-ai/deepseek-v4-pro",
         "api_key": os.getenv("DEEPSEEK_PRO_KEY"),
         "temperature": 1,
-        "max_tokens": 4096,
-        "supports_vision": True
+        "max_tokens": 8192,
+        "supports_vision": True,
+        "extra_body": {"chat_template_kwargs": {"thinking": True, "reasoning_effort": "high"}}
     },
     "DeepSeek Flash": {
         "model": "deepseek-ai/deepseek-v4-flash",
         "api_key": os.getenv("DEEPSEEK_FLASH_KEY"),
         "temperature": 1,
-        "max_tokens": 4096,
-        "supports_vision": False
+        "max_tokens": 16384,
+        "supports_vision": False,
+        "extra_body": {"chat_template_kwargs": {"thinking": True, "reasoning_effort": "high"}}
     },
     "GLM 4.7": {
         "model": "z-ai/glm4.7",
         "api_key": os.getenv("GLM_47_KEY"),
         "temperature": 1,
-        "max_tokens": 4096,
-        "supports_vision": False
+        "max_tokens": 16384,
+        "supports_vision": False,
+        "extra_body": {"chat_template_kwargs": {"enable_thinking": True, "clear_thinking": False}}
     },
     "Kimi K2": {
         "model": "moonshotai/kimi-k2-thinking",
         "api_key": os.getenv("KIMI_K2_KEY"),
         "temperature": 1,
-        "max_tokens": 4096,
-        "supports_vision": False
+        "max_tokens": 16384,
+        "supports_vision": False,
+        "extra_body": {"chat_template_kwargs": {"thinking": True}}
     },
     "Kimi 2.6": {
         "model": "moonshotai/kimi-k2.6",
         "api_key": os.getenv("KIMI_26_KEY"),
         "temperature": 1,
-        "max_tokens": 4096,
-        "supports_vision": False
+        "max_tokens": 16384,
+        "supports_vision": False,
+        "extra_body": {"chat_template_kwargs": {"thinking": True}}
     },
     "Minimax M2.7": {
         "model": "minimaxai/minimax-m2.7",
         "api_key": os.getenv("MINIMAX_M27_KEY"),
         "temperature": 1,
-        "max_tokens": 4096,
+        "max_tokens": 8192,
         "supports_vision": False
     }
 }
@@ -265,7 +270,7 @@ def chat():
         full_response = ""
         reasoning_content = ""
         
-        # Initial metadata
+        # Initial metadata - send immediately to keep connection alive
         yield json.dumps({
             "status": "start",
             "modelUsed": actual_label,
@@ -286,7 +291,7 @@ def chat():
                     full_response += delta.content
                     chunk_data["content"] = delta.content
                 
-                reasoning = getattr(delta, "reasoning", None) or getattr(delta, "reasoning_content", None)
+                reasoning = getattr(delta, "reasoning", None) or getattr(delta, "reasoning_content", None) or getattr(delta, "thinking", None)
                 if reasoning:
                     reasoning_content += reasoning
                     chunk_data["reasoning"] = reasoning
@@ -327,7 +332,11 @@ def chat():
             print(f"DEBUG ERROR: {str(e)}")
             yield json.dumps({"error": str(e)}) + "\n"
 
-    return Response(generate(), mimetype='text/event-stream')
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'X-Accel-Buffering': 'no',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    })
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
