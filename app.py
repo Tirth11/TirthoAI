@@ -67,6 +67,17 @@ MODEL_CONFIGS = {
         "description": "Ultra-fast DeepSeek with thinking",
         "extra_body": {"chat_template_kwargs": {"thinking": True}}
     },
+    "DeepSeek R1": {
+        "model": "deepseek-ai/deepseek-r1",
+        "api_key": os.getenv("DEEPSEEK_PRO_KEY"),
+        "temperature": 1,
+        "max_tokens": 16384,
+        "supports_vision": False,
+        "category": "reasoning",
+        "badge": "🧠",
+        "description": "DeepSeek's flagship reasoning model",
+        "extra_body": {"chat_template_kwargs": {"thinking": True}}
+    },
     "Kimi K2": {
         "model": "moonshotai/kimi-k2-thinking",
         "api_key": os.getenv("KIMI_K2_KEY"),
@@ -132,7 +143,7 @@ MODEL_CONFIGS = {
         "category": "coding",
         "badge": "💻",
         "description": "Excellent for code generation & debugging",
-        "extra_body": {"chat_template_kwargs": {"enable_thinking": True, "clear_thinking": False}}
+        "extra_body": {"chat_template_kwargs": {"enable_thinking": False}}
     },
     "Qwen3 Coder": {
         "model": "qwen/qwen3-coder-480b-a35b-instruct",
@@ -304,11 +315,11 @@ def auto_select_model(text, files_data=None):
         return "DeepSeek Pro", "🔬 DeepSeek Pro selected for analysis & research"
 
     # --- Short simple prompts -> Llama 3.3 70B (fast & reliable) ---
-    if word_count <= 10:
-        return "Llama 3.3 70B", "🦙 Llama 3.3 70B selected for quick responses"
+    if word_count <= 20:
+        return "Llama 3.3 70B", "🦙 Llama 3.3 70B selected for reliable performance"
 
-    # --- Default: DeepSeek Pro ---
-    return "DeepSeek Pro", "🤖 DeepSeek Pro selected for general intelligence"
+    # --- Default: Llama 3.3 70B for stability ---
+    return "Llama 3.3 70B", "🦙 Llama 3.3 70B selected for general stability"
 
 
 def create_conversation():
@@ -517,11 +528,19 @@ def chat():
                 delta = chunk.choices[0].delta
                 chunk_data = {}
                 
+                # Check for content
                 if hasattr(delta, "content") and delta.content is not None:
                     full_response += delta.content
                     chunk_data["content"] = delta.content
                 
-                reasoning = getattr(delta, "reasoning", None) or getattr(delta, "reasoning_content", None) or getattr(delta, "thinking", None)
+                # Check for reasoning/thinking in various possible fields
+                reasoning = (
+                    getattr(delta, "reasoning", None) or 
+                    getattr(delta, "reasoning_content", None) or 
+                    getattr(delta, "thinking", None) or
+                    getattr(delta, "thinking_content", None)
+                )
+                
                 if reasoning:
                     reasoning_content += reasoning
                     chunk_data["reasoning"] = reasoning
@@ -529,8 +548,12 @@ def chat():
                 if chunk_data:
                     yield json.dumps(chunk_data) + "\n"
                 else:
-                    # Send a heartbeat to keep connection alive if chunk is empty
-                    yield "\n"
+                    # Send a heartbeat every few chunks to keep connection alive
+                    yield ": heartbeat\n"
+            
+            if not full_response and not reasoning_content:
+                print(f"DEBUG: Model {actual_label} returned NO CONTENT and NO REASONING.")
+                yield json.dumps({"content": "The model returned an empty response. This can happen if the model is overloaded or the prompt was blocked by safety filters."}) + "\n"
             
             end_time = datetime.now()
             elapsed_seconds = (end_time - start_time).total_seconds()

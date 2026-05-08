@@ -6,6 +6,10 @@ from datetime import datetime
 import json
 from werkzeug.utils import secure_filename
 import base64
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -35,6 +39,7 @@ MODEL_MAP = {
     "kimi": "moonshotai/kimi-k2-thinking",
     "kimi_26": "moonshotai/kimi-k2.6",
     "minimax": "minimaxai/minimax-m2.7",
+    "llama": "meta/llama-3.3-70b-instruct",
 }
 MODEL_LABELS = {
     "deepseek-ai/deepseek-v4-pro": "DeepSeek Pro",
@@ -43,6 +48,7 @@ MODEL_LABELS = {
     "moonshotai/kimi-k2-thinking": "Kimi K2",
     "moonshotai/kimi-k2.6": "Kimi 2.6",
     "minimaxai/minimax-m2.7": "Minimax M2.7",
+    "meta/llama-3.3-70b-instruct": "Llama 3.3 70B",
 }
 
 if not os.path.exists(UPLOAD_FOLDER):
@@ -54,7 +60,7 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 # Initialize OpenAI client with DeepSeek v4-pro
 client = OpenAI(
     base_url="https://integrate.api.nvidia.com/v1",
-    api_key="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"
+    api_key=os.getenv("DEEPSEEK_PRO_KEY")
 )
 
 # Store conversations in memory
@@ -105,7 +111,7 @@ def auto_route(message_text, files_meta):
         return "z-ai/glm4.7", "Deep reasoning request"
     if len(lowered) < 200 and not has_files:
         return "deepseek-ai/deepseek-v4-flash", "Short, fast query"
-    return "deepseek-ai/deepseek-v4-pro", "General task"
+    return "meta/llama-3.3-70b-instruct", "General task (Stable)"
 
 @app.after_request
 def add_no_cache_headers(response):

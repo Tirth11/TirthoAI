@@ -293,6 +293,7 @@
             max-width: 850px;
             width: 100%;
             margin: 0 auto;
+            min-width: 0;
         }
 
         .message-wrapper.user {
@@ -305,7 +306,9 @@
             font-size: 15px;
             line-height: 1.6;
             position: relative;
-            word-wrap: break-word;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            max-width: 100%;
         }
 
         .user .message-bubble {
@@ -320,19 +323,28 @@
             color: var(--text-main);
             border: 1px solid var(--border-color);
             border-bottom-left-radius: 4px;
+            box-shadow: var(--shadow-sm);
         }
 
-        .message-meta {
-            font-size: 12px;
-            color: var(--text-muted);
-            display: flex;
-            gap: 12px;
-            margin: 0 4px;
+        .content-text {
+            width: 100%;
+            overflow-wrap: anywhere;
         }
 
-        .message-model {
-            font-weight: 600;
-            color: var(--primary);
+        .content-text p {
+            margin-bottom: 12px;
+        }
+
+        .content-text *:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-bubble table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 12px 0;
+            table-layout: fixed;
+            word-break: break-all;
         }
 
         /* Markdown Styling */
@@ -343,6 +355,9 @@
             border-radius: var(--radius-sm);
             margin: 12px 0;
             overflow-x: auto;
+            max-width: 100%;
+            white-space: pre-wrap;
+            word-break: break-all;
         }
 
         .message-bubble code {
@@ -350,12 +365,7 @@
             background: rgba(0, 0, 0, 0.05);
             padding: 2px 4px;
             border-radius: 4px;
-        }
-
-        .message-bubble table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 12px 0;
+            word-break: break-all;
         }
 
         .message-bubble th, .message-bubble td {
@@ -366,6 +376,20 @@
 
         .message-bubble th {
             background-color: rgba(0, 0, 0, 0.02);
+        }
+        
+        .message-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+            margin: 0 4px;
+            flex-wrap: wrap;
+        }
+
+        .message-model {
+            font-weight: 600;
+            color: var(--primary);
         }
 
         /* Thinking State */
@@ -1102,27 +1126,31 @@
                         aiMessage.elapsedTime = data.elapsedTime;
                         updateMessageMeta(meta, aiMessage);
                         loadRecentChats();
-                    } else if (data.content) {
-                        if (!contentStarted) {
-                            contentStarted = true;
-                            stopAssistantThinking();
-                            wrapper.style.display = 'flex';
-                        }
-                        fullContent += data.content;
-                        aiMessage.content = fullContent;
-                        updateMessageContent(bubble, aiMessage);
-                    } else if (data.reasoning) {
-                        if (!contentStarted) {
-                            contentStarted = true;
-                            stopAssistantThinking();
-                            wrapper.style.display = 'flex';
-                        }
-                        fullReasoning += data.reasoning;
-                        aiMessage.reasoning = fullReasoning;
-                        updateMessageContent(bubble, aiMessage);
-                    } else if (data.error) {
+                    } else if (data.status === 'error') {
                         stopAssistantThinking();
-                        renderError(data.error);
+                        renderError(data.message || 'An error occurred during generation.');
+                    } else if (data.content || data.reasoning || data.status === 'done') {
+                        if (!contentStarted) {
+                            contentStarted = true;
+                            stopAssistantThinking();
+                            wrapper.style.display = 'flex';
+                        }
+                        if (data.content) {
+                            fullContent += data.content;
+                            aiMessage.content = fullContent;
+                        } else if (data.reasoning) {
+                            fullReasoning += data.reasoning;
+                            aiMessage.reasoning = fullReasoning;
+                        } else if (data.status === 'done') {
+                            aiMessage.status = 'done';
+                            aiMessage.elapsedTime = data.elapsedTime;
+                            if (!fullContent && !fullReasoning) {
+                                aiMessage.content = "_The model finished but returned no content._";
+                            }
+                            updateMessageMeta(meta, aiMessage);
+                            loadRecentChats();
+                        }
+                        updateMessageContent(bubble, aiMessage);
                     }
                 }
 
@@ -1201,16 +1229,23 @@
 
         function updateMessageContent(bubble, msg) {
             const reasoningHtml = msg.reasoning ? `
-                <details class="reasoning-details" style="margin-bottom: 12px;" open>
-                    <summary style="font-size: 13px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-brain"></i> Thinking...
-                    </summary>
-                    <div style="font-size: 13px; color: var(--text-muted); padding: 12px; background: rgba(0,0,0,0.02); border-radius: 8px; margin-top: 8px; border-left: 3px solid var(--border-color); white-space: pre-wrap;">${msg.reasoning}</div>
-                </details>
+                <div class="reasoning-container">
+                    <div class="reasoning-header" onclick="toggleReasoning(this)">
+                        <i class="fas fa-microchip"></i> Reasoning
+                        <i class="fas fa-chevron-down toggle-icon"></i>
+                    </div>
+                    <div class="reasoning-content" style="white-space: pre-wrap; display: block;">${msg.reasoning}</div>
+                </div>
             ` : '';
-
-            const contentHtml = marked.parse(msg.content || '');
+            
+            const content = msg.content || (msg.reasoning ? "" : "...");
+            const contentHtml = marked.parse(content);
             bubble.innerHTML = `${reasoningHtml}<div class="content-text">${contentHtml}</div>`;
+            
+            // Re-highlight code blocks
+            bubble.querySelectorAll('pre code').forEach((block) => {
+                if (typeof hljs !== 'undefined') hljs.highlightElement(block);
+            });
         }
 
         function updateMessageMeta(meta, msg) {

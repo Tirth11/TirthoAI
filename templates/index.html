@@ -122,12 +122,21 @@
         .suggestions { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
         .suggestion { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-ghost); text-align: left; cursor: pointer; }
         .messages { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
-        .message { display: grid; grid-template-columns: 44px 1fr; gap: 10px; }
+        .message { display: grid; grid-template-columns: 44px 1fr; gap: 10px; min-width: 0; }
         .message .avatar {
             width: 40px; height: 40px; border-radius: 12px; background: var(--bg-ghost); display: grid;
             place-items: center; font-weight: 700; color: var(--brand);
         }
-        .bubble { background: var(--bg-elev); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); }
+        .bubble { 
+            background: var(--bg-elev); 
+            border: 1px solid var(--line); 
+            border-radius: 14px; 
+            padding: 12px 14px; 
+            box-shadow: var(--shadow);
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            max-width: 100%;
+        }
         .message.user .bubble { border-left: 4px solid var(--brand); }
         .bubble-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 10px; }
         .bubble-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
