@@ -650,6 +650,64 @@
             }
             .right-panel { display: none; }
         }
+        /* ── Model Picker ── */
+        .model-picker-wrapper { position: relative; }
+        .model-picker-btn {
+            display: flex; align-items: center; gap: 6px;
+            background: var(--bg-main); border: 1px solid var(--border-color);
+            padding: 5px 12px; border-radius: 20px; font-size: 13px;
+            font-weight: 500; color: var(--text-muted); cursor: pointer;
+            transition: var(--transition); white-space: nowrap;
+        }
+        .model-picker-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .model-picker-dropdown {
+            display: none; position: absolute; bottom: calc(100% + 8px); left: 0;
+            width: 320px; background: var(--bg-chat-ai);
+            border: 1px solid var(--border-color); border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15); z-index: 200;
+            overflow: hidden;
+        }
+        .model-picker-dropdown.open { display: block; animation: fadeUp 0.15s ease; }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        .model-search-box {
+            display: flex; align-items: center; gap: 8px;
+            padding: 12px 16px; border-bottom: 1px solid var(--border-color);
+        }
+        .model-search-box i { color: var(--text-muted); font-size: 13px; }
+        .model-search-box input {
+            border: none; background: transparent; flex: 1; font-size: 13px;
+            color: var(--text-main); outline: none;
+        }
+        .model-category-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+            color: var(--text-muted); padding: 8px 16px 4px; font-weight: 600;
+        }
+        .model-option {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 16px; cursor: pointer; transition: background 0.15s;
+        }
+        .model-option:hover, .model-option.selected { background: rgba(99,102,241,0.08); }
+        .model-option.selected .model-opt-name { color: var(--primary); font-weight: 600; }
+        .model-opt-badge { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
+        .model-opt-info { flex: 1; min-width: 0; }
+        .model-opt-name { font-size: 13px; font-weight: 500; color: var(--text-main); }
+        .model-opt-desc { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .model-opt-tags { display: flex; gap: 4px; margin-top: 2px; }
+        .model-tag {
+            font-size: 9px; padding: 1px 6px; border-radius: 10px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: .04em;
+        }
+        .tag-vision { background: #dbeafe; color: #1d4ed8; }
+        .tag-reasoning { background: #ede9fe; color: #6d28d9; }
+        .tag-coding { background: #dcfce7; color: #15803d; }
+        .tag-creative { background: #fce7f3; color: #be185d; }
+        .tag-general { background: #f1f5f9; color: #475569; }
+        [data-theme="dark"] .tag-vision { background: #1e3a5f; color: #93c5fd; }
+        [data-theme="dark"] .tag-reasoning { background: #2e1065; color: #c4b5fd; }
+        [data-theme="dark"] .tag-coding { background: #052e16; color: #86efac; }
+        [data-theme="dark"] .tag-creative { background: #500724; color: #f9a8d4; }
+        [data-theme="dark"] .tag-general { background: #1e293b; color: #94a3b8; }
+        .model-list-scroll { max-height: 340px; overflow-y: auto; padding-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -797,20 +855,22 @@
                 </div>
                 <div class="composer-footer">
                     <div class="selector-group">
-                        <select class="custom-select" id="modelSelector">
-                            <option value="Auto">Auto</option>
-                            <option value="DeepSeek Pro">DeepSeek Pro</option>
-                            <option value="DeepSeek Flash">DeepSeek Flash</option>
-                            <option value="GLM 4.7">GLM 4.7</option>
-                            <option value="Kimi K2">Kimi K2</option>
-                            <option value="Kimi 2.6">Kimi 2.6</option>
-                            <option value="Minimax M2.7">Minimax M2.7</option>
-                        </select>
-                        <select class="custom-select">
-                            <option value="General">General Chat</option>
-                            <option value="Coding">Coding Mode</option>
-                            <option value="Reasoning">Deep Reasoning</option>
-                        </select>
+                        <div class="model-picker-wrapper" id="modelPickerWrapper">
+                            <button class="model-picker-btn" id="modelPickerBtn" onclick="toggleModelPicker()">
+                                <span id="modelPickerIcon">🤖</span>
+                                <span id="modelPickerLabel">Auto</span>
+                                <i class="fas fa-chevron-up" id="modelPickerChevron"></i>
+                            </button>
+                            <div class="model-picker-dropdown" id="modelPickerDropdown">
+                                <div class="model-search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="modelSearch" placeholder="Search models..." oninput="filterModels()">
+                                </div>
+                                <div id="modelList"></div>
+                            </div>
+                        </div>
+                        <!-- hidden input used by handleSend() -->
+                        <input type="hidden" id="modelSelector" value="Auto">
                     </div>
                 </div>
             </div>
@@ -865,6 +925,7 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             loadRecentChats();
+            loadModels();
             chatInput.focus();
             
             // Auto-resize textarea
@@ -1420,6 +1481,85 @@
             el.className = 'fas fa-check';
             setTimeout(() => el.className = 'far fa-copy', 2000);
         }
+
+        // ── Model Picker ──────────────────────────────────────────────
+        let allModels = [];
+        let selectedModel = 'Auto';
+
+        async function loadModels() {
+            try {
+                const res = await fetch('/models');
+                allModels = await res.json();
+                // Prepend Auto option
+                allModels.unshift({ label: 'Auto', badge: '🤖', category: 'auto', description: 'Automatically picks the best model for your task', supports_vision: false });
+                renderModelList(allModels);
+            } catch(e) { console.error('Failed to load models', e); }
+        }
+
+        const CATEGORY_ORDER = ['auto', 'reasoning', 'vision', 'coding', 'creative', 'general'];
+        const CATEGORY_LABELS = { auto: 'Auto Select', reasoning: '🧠 Reasoning', vision: '👁️ Vision & Multimodal', coding: '💻 Coding', creative: '✍️ Creative', general: '⚡ General' };
+
+        function renderModelList(models) {
+            const list = document.getElementById('modelList');
+            const grouped = {};
+            models.forEach(m => { if (!grouped[m.category]) grouped[m.category] = []; grouped[m.category].push(m); });
+
+            let html = '<div class="model-list-scroll">';
+            CATEGORY_ORDER.forEach(cat => {
+                if (!grouped[cat]) return;
+                html += `<div class="model-category-label">${CATEGORY_LABELS[cat] || cat}</div>`;
+                grouped[cat].forEach(m => {
+                    const sel = m.label === selectedModel ? 'selected' : '';
+                    const visionTag = m.supports_vision ? `<span class="model-tag tag-vision">Vision</span>` : '';
+                    const catTag = cat !== 'auto' ? `<span class="model-tag tag-${cat}">${cat}</span>` : '';
+                    html += `
+                        <div class="model-option ${sel}" onclick="selectModel('${m.label}', '${m.badge}')">
+                            <div class="model-opt-badge">${m.badge}</div>
+                            <div class="model-opt-info">
+                                <div class="model-opt-name">${m.label}</div>
+                                <div class="model-opt-desc">${m.description}</div>
+                                <div class="model-opt-tags">${visionTag}${catTag}</div>
+                            </div>
+                        </div>`;
+                });
+            });
+            html += '</div>';
+            list.innerHTML = html;
+        }
+
+        function filterModels() {
+            const q = document.getElementById('modelSearch').value.toLowerCase();
+            const filtered = allModels.filter(m => m.label.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || m.category.toLowerCase().includes(q));
+            renderModelList(filtered);
+        }
+
+        function selectModel(label, badge) {
+            selectedModel = label;
+            document.getElementById('modelSelector').value = label;
+            document.getElementById('modelPickerLabel').textContent = label;
+            document.getElementById('modelPickerIcon').textContent = badge;
+            document.getElementById('currentModelDisplay').textContent = label === 'Auto' ? 'Auto Mode' : label;
+            closeModelPicker();
+            renderModelList(allModels); // re-render to update selection highlight
+        }
+
+        function toggleModelPicker() {
+            const dd = document.getElementById('modelPickerDropdown');
+            const ch = document.getElementById('modelPickerChevron');
+            const isOpen = dd.classList.contains('open');
+            if (isOpen) { closeModelPicker(); }
+            else { dd.classList.add('open'); ch.style.transform = 'rotate(180deg)'; document.getElementById('modelSearch').focus(); }
+        }
+
+        function closeModelPicker() {
+            document.getElementById('modelPickerDropdown').classList.remove('open');
+            document.getElementById('modelPickerChevron').style.transform = '';
+        }
+
+        // Close picker on outside click
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('modelPickerWrapper').contains(e.target)) closeModelPicker();
+        });
     </script>
 </body>
 </html>

@@ -12,10 +12,8 @@ if os.environ.get("USE_GEVENT", "False").lower() == "true":
 from flask import Flask, render_template, request, jsonify, Response, send_from_directory
 from openai import OpenAI
 import uuid
-import uuid
 from datetime import datetime
 import json
-import sys
 from werkzeug.utils import secure_filename
 import base64
 
@@ -42,13 +40,20 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
 # Model Configurations
+# -------------------------------------------------------------------
+# CATEGORY LABELS:  reasoning | vision | coding | creative | general
+# -------------------------------------------------------------------
 MODEL_CONFIGS = {
+    # ── REASONING ───────────────────────────────────────────────────
     "DeepSeek Pro": {
         "model": "deepseek-ai/deepseek-v4-pro",
         "api_key": os.getenv("DEEPSEEK_PRO_KEY"),
         "temperature": 1,
         "max_tokens": 8192,
         "supports_vision": True,
+        "category": "reasoning",
+        "badge": "🔬",
+        "description": "Flagship reasoning model with vision",
         "extra_body": {"chat_template_kwargs": {"thinking": True, "reasoning_effort": "high"}}
     },
     "DeepSeek Flash": {
@@ -57,15 +62,10 @@ MODEL_CONFIGS = {
         "temperature": 1,
         "max_tokens": 16384,
         "supports_vision": False,
+        "category": "reasoning",
+        "badge": "⚡",
+        "description": "Ultra-fast DeepSeek with thinking",
         "extra_body": {"chat_template_kwargs": {"thinking": True}}
-    },
-    "GLM 4.7": {
-        "model": "z-ai/glm4.7",
-        "api_key": os.getenv("GLM_47_KEY"),
-        "temperature": 1,
-        "max_tokens": 16384,
-        "supports_vision": False,
-        "extra_body": {"chat_template_kwargs": {"enable_thinking": True, "clear_thinking": False}}
     },
     "Kimi K2": {
         "model": "moonshotai/kimi-k2-thinking",
@@ -73,6 +73,9 @@ MODEL_CONFIGS = {
         "temperature": 1,
         "max_tokens": 16384,
         "supports_vision": False,
+        "category": "reasoning",
+        "badge": "🧠",
+        "description": "Deep math & logical reasoning",
         "extra_body": {"chat_template_kwargs": {"thinking": True}}
     },
     "Kimi 2.6": {
@@ -81,15 +84,128 @@ MODEL_CONFIGS = {
         "temperature": 1,
         "max_tokens": 16384,
         "supports_vision": False,
+        "category": "creative",
+        "badge": "✍️",
+        "description": "Creative writing & storytelling",
         "extra_body": {"chat_template_kwargs": {"thinking": True}}
+    },
+
+    # ── VISION / MULTIMODAL ─────────────────────────────────────────
+    "Llama 4 Maverick": {
+        "model": "meta/llama-4-maverick-17b-128e-instruct",
+        "api_key": os.getenv("DEEPSEEK_PRO_KEY"),   # reuse any valid key
+        "temperature": 0.7,
+        "max_tokens": 8192,
+        "supports_vision": True,
+        "category": "vision",
+        "badge": "👁️",
+        "description": "Meta's latest multimodal powerhouse"
+    },
+    "Llama Vision 90B": {
+        "model": "meta/llama-3.2-90b-vision-instruct",
+        "api_key": os.getenv("DEEPSEEK_PRO_KEY"),
+        "temperature": 0.7,
+        "max_tokens": 8192,
+        "supports_vision": True,
+        "category": "vision",
+        "badge": "🖼️",
+        "description": "90B vision model for image analysis"
+    },
+    "Phi-4 Multimodal": {
+        "model": "microsoft/phi-4-multimodal-instruct",
+        "api_key": os.getenv("DEEPSEEK_PRO_KEY"),
+        "temperature": 0.7,
+        "max_tokens": 4096,
+        "supports_vision": True,
+        "category": "vision",
+        "badge": "🔭",
+        "description": "Microsoft multimodal — fast & efficient"
+    },
+
+    # ── CODING ──────────────────────────────────────────────────────
+    "GLM 4.7": {
+        "model": "z-ai/glm4.7",
+        "api_key": os.getenv("GLM_47_KEY"),
+        "temperature": 1,
+        "max_tokens": 16384,
+        "supports_vision": False,
+        "category": "coding",
+        "badge": "💻",
+        "description": "Excellent for code generation & debugging",
+        "extra_body": {"chat_template_kwargs": {"enable_thinking": True, "clear_thinking": False}}
+    },
+    "Qwen3 Coder": {
+        "model": "qwen/qwen3-coder-480b-a35b-instruct",
+        "api_key": os.getenv("GLM_47_KEY"),
+        "temperature": 0.7,
+        "max_tokens": 16384,
+        "supports_vision": False,
+        "category": "coding",
+        "badge": "🚀",
+        "description": "480B coder — best for complex code tasks"
+    },
+    "Devstral 2": {
+        "model": "mistralai/devstral-2-123b-instruct-2512",
+        "api_key": os.getenv("GLM_47_KEY"),
+        "temperature": 0.7,
+        "max_tokens": 16384,
+        "supports_vision": False,
+        "category": "coding",
+        "badge": "🛠️",
+        "description": "Mistral's dev-focused 123B coding model"
+    },
+    "GLM 5": {
+        "model": "z-ai/glm5",
+        "api_key": os.getenv("GLM_47_KEY"),
+        "temperature": 0.8,
+        "max_tokens": 16384,
+        "supports_vision": False,
+        "category": "coding",
+        "badge": "🌟",
+        "description": "Latest GLM with enhanced capabilities"
+    },
+
+    # ── GENERAL / FAST ───────────────────────────────────────────────
+    "Llama 3.3 70B": {
+        "model": "meta/llama-3.3-70b-instruct",
+        "api_key": os.getenv("KIMI_26_KEY"),
+        "temperature": 0.7,
+        "max_tokens": 8192,
+        "supports_vision": False,
+        "category": "general",
+        "badge": "🦙",
+        "description": "Meta's reliable 70B general assistant"
+    },
+    "Nemotron Super 49B": {
+        "model": "nvidia/llama-3.3-nemotron-super-49b-v1",
+        "api_key": os.getenv("KIMI_26_KEY"),
+        "temperature": 0.7,
+        "max_tokens": 8192,
+        "supports_vision": False,
+        "category": "general",
+        "badge": "⚙️",
+        "description": "NVIDIA's fine-tuned high-performance model"
+    },
+    "Mistral Large 3": {
+        "model": "mistralai/mistral-large-3-675b-instruct-2512",
+        "api_key": os.getenv("KIMI_26_KEY"),
+        "temperature": 0.7,
+        "max_tokens": 8192,
+        "supports_vision": False,
+        "category": "general",
+        "badge": "🌊",
+        "description": "Mistral's 675B flagship instruction model"
     },
     "Minimax M2.7": {
         "model": "minimaxai/minimax-m2.7",
         "api_key": os.getenv("MINIMAX_M27_KEY"),
         "temperature": 1,
         "max_tokens": 8192,
-        "supports_vision": False
-    }
+        "supports_vision": False,
+        "category": "general",
+        "badge": "📋",
+        "description": "Great for summarization & translation"
+    },
 }
 
 # Store conversations in memory
@@ -111,15 +227,42 @@ def auto_select_model(text, files_data=None):
     t = text.lower().strip()
     word_count = len(t.split())
 
-    # --- Image/vision input -> DeepSeek Pro (only vision model) ---
+    # --- Image/vision input -> Llama 4 Maverick (best multimodal) ---
     if files_data and any(f.get('type') == 'image' for f in files_data):
-        return "DeepSeek Pro", "🔍 DeepSeek Pro selected for image analysis"
+        return "Llama 4 Maverick", "👁️ Llama 4 Maverick selected for image analysis"
 
-    # --- Simple greetings / conversational / very short prompts -> DeepSeek Flash ---
+    # --- Simple greetings -> DeepSeek Flash ---
     greet_patterns = ["hi", "hello", "hey", "how are you", "what's up", "whats up",
                       "good morning", "good night", "thanks", "thank you", "ok", "okay", "bye"]
     if word_count <= 5 and any(t.startswith(g) or t == g for g in greet_patterns):
         return "DeepSeek Flash", "⚡ DeepSeek Flash selected for quick conversation"
+
+    # --- UI / frontend / design -> Qwen3 Coder ---
+    ui_keywords = [
+        "ui", "ux", "design", "html", "css", "tailwind", "frontend", "interface",
+        "component", "layout", "responsive", "mobile", "web app", "website",
+        "button", "form", "modal", "navbar", "sidebar", "dashboard", "landing page"
+    ]
+    if any(kw in t for kw in ui_keywords):
+        return "Qwen3 Coder", "🚀 Qwen3 Coder selected for UI/frontend tasks"
+
+    # --- Complex code -> Qwen3 Coder, else GLM 4.7 ---
+    hard_code_keywords = [
+        "architecture", "microservice", "system design", "refactor", "optimize",
+        "performance", "scalable", "kubernetes", "docker", "ci/cd", "devops"
+    ]
+    if any(kw in t for kw in hard_code_keywords):
+        return "Devstral 2", "🛠️ Devstral 2 selected for complex dev tasks"
+
+    code_keywords = [
+        "code", "program", "script", "function", "class", "debug", "error", "bug",
+        "python", "javascript", "java", "c++", "c#", "typescript", "react", "sql",
+        "api", "endpoint", "database", "flask", "django", "fastapi",
+        "implement", "write a", "create a function", "unit test", "deploy",
+        "git", "pull request"
+    ]
+    if any(kw in t for kw in code_keywords):
+        return "GLM 4.7", "💻 GLM 4.7 selected for coding tasks"
 
     # --- Math / logic / deep reasoning -> Kimi K2 ---
     math_keywords = [
@@ -127,56 +270,44 @@ def auto_select_model(text, files_data=None):
         "algebra", "geometry", "calculus", "statistics", "probability", "matrix",
         "algorithm", "complexity", "big o", "dynamic programming", "recursion",
         "logic", "reasoning", "deduce", "infer", "step by step", "step-by-step",
-        "how does", "why does", "explain why", "solve", "evaluate", "optimize"
+        "solve", "evaluate", "explain why"
     ]
     if any(kw in t for kw in math_keywords):
         return "Kimi K2", "🧠 Kimi K2 selected for deep reasoning & math"
 
-    # --- Code / programming -> GLM 4.7 ---
-    code_keywords = [
-        "code", "program", "script", "function", "class", "debug", "error", "bug",
-        "python", "javascript", "java", "c++", "c#", "typescript", "react", "sql",
-        "api", "endpoint", "database", "html", "css", "flask", "django", "fastapi",
-        "implement", "refactor", "fix the", "write a", "create a function",
-        "unit test", "deploy", "docker", "kubernetes", "git", "pull request"
-    ]
-    if any(kw in t for kw in code_keywords):
-        return "GLM 4.7", "💻 GLM 4.7 selected for coding tasks"
-
-    # --- Creative / writing / storytelling -> Kimi 2.6 ---
+    # --- Creative / writing -> Kimi 2.6 ---
     creative_keywords = [
         "write a story", "poem", "creative", "essay", "draft", "letter",
         "blog post", "article", "narrative", "fiction", "character", "plot",
-        "song", "lyrics", "script", "dialogue", "brainstorm", "idea",
-        "slogan", "caption", "tweet", "social media", "marketing copy"
+        "song", "lyrics", "dialogue", "brainstorm", "idea", "slogan",
+        "caption", "tweet", "social media", "marketing copy"
     ]
     if any(kw in t for kw in creative_keywords):
         return "Kimi 2.6", "✍️ Kimi 2.6 selected for creative writing"
 
-    # --- Summarization / translation / multilingual -> Minimax M2.7 ---
+    # --- Summarization / translation -> Minimax M2.7 ---
     summary_keywords = [
         "summarize", "summary", "translate", "translation", "paraphrase",
-        "tldr", "key points", "main points", "extract", "list the",
-        "what are the", "overview", "brief", "highlight"
+        "tldr", "key points", "main points", "extract", "overview", "brief"
     ]
     if any(kw in t for kw in summary_keywords):
         return "Minimax M2.7", "📋 Minimax M2.7 selected for summarization"
 
-    # --- Analysis / research / comparison -> DeepSeek Pro ---
+    # --- Analysis / research -> DeepSeek Pro ---
     analysis_keywords = [
         "analyze", "analysis", "compare", "comparison", "research", "explain",
         "difference between", "pros and cons", "advantages", "disadvantages",
-        "review", "evaluate", "assess", "what is", "who is", "how to",
+        "review", "assess", "what is", "who is", "how to",
         "best way", "recommend", "suggest", "plan", "strategy"
     ]
     if any(kw in t for kw in analysis_keywords):
         return "DeepSeek Pro", "🔬 DeepSeek Pro selected for analysis & research"
 
-    # --- Short/simple prompts -> DeepSeek Flash ---
+    # --- Short simple prompts -> Llama 3.3 70B (fast & reliable) ---
     if word_count <= 10:
-        return "DeepSeek Flash", "⚡ DeepSeek Flash selected for quick responses"
+        return "Llama 3.3 70B", "🦙 Llama 3.3 70B selected for quick responses"
 
-    # --- Default: DeepSeek Pro for everything else ---
+    # --- Default: DeepSeek Pro ---
     return "DeepSeek Pro", "🤖 DeepSeek Pro selected for general intelligence"
 
 
@@ -205,6 +336,21 @@ def add_header(response):
 @app.route('/')
 def index():
     return render_template('deepseek_enhanced.html')
+
+@app.route('/models', methods=['GET'])
+def get_models():
+    """Return list of all models with metadata"""
+    models_list = []
+    for label, cfg in MODEL_CONFIGS.items():
+        models_list.append({
+            "label": label,
+            "model": cfg["model"],
+            "category": cfg.get("category", "general"),
+            "badge": cfg.get("badge", "🤖"),
+            "description": cfg.get("description", ""),
+            "supports_vision": cfg.get("supports_vision", False)
+        })
+    return jsonify(models_list)
 
 @app.route('/conversations', methods=['GET'])
 def get_conversations():
