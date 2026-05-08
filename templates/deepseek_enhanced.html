@@ -1000,11 +1000,12 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to connect to server');
+                    let errMsg = 'Failed to connect to server';
+                    try { const ed = await response.json(); errMsg = ed.error || errMsg; } catch(e){}
+                    throw new Error(errMsg);
                 }
 
-                // Create AI message placeholder immediately so we have it
+                // Create AI message placeholder
                 const aiMsgId = 'ai-' + Date.now();
                 const aiMessage = {
                     id: aiMsgId,
@@ -1019,8 +1020,6 @@
                 const wrapper = renderMessagePlaceholder(aiMessage);
                 const bubble = wrapper.querySelector('.message-bubble');
                 const meta = wrapper.querySelector('.message-meta');
-                
-                // Hide wrapper initially until we have content to avoid blank bubble
                 wrapper.style.display = 'none';
 
                 const reader = response.body.getReader();
@@ -1028,17 +1027,47 @@
                 let fullContent = '';
                 let fullReasoning = '';
                 let buffer = '';
-                let hasStarted = false;
+                let contentStarted = false;
+
+                function processChunk(data) {
+                    if (data.status === 'start') {
+                        aiMessage.modelUsed = data.modelUsed;
+                        aiMessage.selectionReason = data.selectionReason;
+                        currentConversationId = data.conversation_id;
+                        // Update thinking indicator with model name
+                        updateThinkingStep(data.modelUsed);
+                    } else if (data.status === 'done') {
+                        aiMessage.status = 'done';
+                        aiMessage.elapsedTime = data.elapsedTime;
+                        updateMessageMeta(meta, aiMessage);
+                        loadRecentChats();
+                    } else if (data.content) {
+                        if (!contentStarted) {
+                            contentStarted = true;
+                            stopAssistantThinking();
+                            wrapper.style.display = 'flex';
+                        }
+                        fullContent += data.content;
+                        aiMessage.content = fullContent;
+                        updateMessageContent(bubble, aiMessage);
+                    } else if (data.reasoning) {
+                        if (!contentStarted) {
+                            contentStarted = true;
+                            stopAssistantThinking();
+                            wrapper.style.display = 'flex';
+                        }
+                        fullReasoning += data.reasoning;
+                        aiMessage.reasoning = fullReasoning;
+                        updateMessageContent(bubble, aiMessage);
+                    } else if (data.error) {
+                        stopAssistantThinking();
+                        renderError(data.error);
+                    }
+                }
 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    
-                    if (!hasStarted) {
-                        stopAssistantThinking();
-                        wrapper.style.display = 'block';
-                        hasStarted = true;
-                    }
                     
                     buffer += decoder.decode(value, { stream: true });
                     const lines = buffer.split('\n');
@@ -1047,44 +1076,25 @@
                     for (const line of lines) {
                         if (!line.trim()) continue;
                         try {
-                            const data = JSON.parse(line);
-                            
-                            if (data.status === 'start') {
-                                aiMessage.modelUsed = data.modelUsed;
-                                aiMessage.selectionReason = data.selectionReason;
-                                currentConversationId = data.conversation_id;
-                                updateMessageMeta(meta, aiMessage);
-                            } else if (data.status === 'done') {
-                                aiMessage.status = 'done';
-                                aiMessage.elapsedTime = data.elapsedTime;
-                                updateMessageMeta(meta, aiMessage);
-                                loadRecentChats();
-                            } else if (data.content) {
-                                fullContent += data.content;
-                                aiMessage.content = fullContent;
-                                updateMessageContent(bubble, aiMessage);
-                            } else if (data.reasoning) {
-                                fullReasoning += data.reasoning;
-                                aiMessage.reasoning = fullReasoning;
-                                updateMessageContent(bubble, aiMessage);
-                            } else if (data.error) {
-                                renderError(data.error);
-                            }
+                            processChunk(JSON.parse(line));
                         } catch (e) {
-                            console.error("Error parsing chunk", e, line);
+                            console.error("Parse error:", e, line);
                         }
                     }
                     scrollToBottom();
                 }
 
-                // Process any remaining data in buffer
+                // Process remaining buffer
                 if (buffer.trim()) {
-                    try {
-                        const data = JSON.parse(buffer);
-                        // handle same as above...
-                    } catch(e) {}
+                    try { processChunk(JSON.parse(buffer)); } catch(e) {}
                 }
 
+                if (!contentStarted) {
+                    stopAssistantThinking();
+                    wrapper.style.display = 'flex';
+                }
+
+                updateMessageMeta(meta, aiMessage);
                 messages.push(aiMessage);
                 Prism.highlightAllUnder(wrapper);
 
@@ -1095,7 +1105,9 @@
                 } else {
                     let friendlyMessage = error.message;
                     if (friendlyMessage.includes('429')) {
-                        friendlyMessage = "Rate limit reached (429). The AI servers are currently busy. Please wait a moment and try again.";
+                        friendlyMessage = "Rate limit reached (429). The AI servers are busy. Please wait a moment and try again.";
+                    } else if (friendlyMessage.includes('timeout') || friendlyMessage.includes('Timeout')) {
+                        friendlyMessage = "Request timed out. The model may be overloaded. Try DeepSeek Flash for faster responses.";
                     }
                     renderError(friendlyMessage);
                 }
@@ -1164,13 +1176,13 @@
                             <div class="dot"></div>
                             <div class="dot"></div>
                         </div>
-                        <span>TirthoAI is thinking...</span>
+                        <span id="thinkingLabel">TirthoAI is thinking...</span>
                     </div>
                     <div class="thinking-timer" id="thinkingTimer">00:00</div>
-                    <div class="activity-steps">
-                        <div class="step done"><i class="fas fa-check-circle"></i> Request received</div>
-                        <div class="step active"><i class="fas fa-circle-notch fa-spin"></i> Selecting best model</div>
-                        <div class="step"><i class="far fa-circle"></i> Generating response</div>
+                    <div class="activity-steps" id="thinkingSteps">
+                        <div class="step done" id="stepReceived"><i class="fas fa-check-circle"></i> Request received</div>
+                        <div class="step active" id="stepModel"><i class="fas fa-circle-notch fa-spin"></i> Connecting to model...</div>
+                        <div class="step" id="stepGenerate"><i class="far fa-circle"></i> Generating response</div>
                     </div>
                 </div>
             `;
@@ -1182,10 +1194,28 @@
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
                 const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
                 const secs = (elapsed % 60).toString().padStart(2, '0');
-                document.getElementById('thinkingTimer').innerText = `${mins}:${secs}`;
+                const el = document.getElementById('thinkingTimer');
+                if (el) el.innerText = `${mins}:${secs}`;
             }, 1000);
             
             scrollToBottom();
+        }
+
+        function updateThinkingStep(modelName) {
+            const stepModel = document.getElementById('stepModel');
+            const stepGenerate = document.getElementById('stepGenerate');
+            const thinkingLabel = document.getElementById('thinkingLabel');
+            if (stepModel) {
+                stepModel.className = 'step done';
+                stepModel.innerHTML = `<i class="fas fa-check-circle"></i> Connected to ${modelName}`;
+            }
+            if (stepGenerate) {
+                stepGenerate.className = 'step active';
+                stepGenerate.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Generating response...`;
+            }
+            if (thinkingLabel) {
+                thinkingLabel.innerText = `${modelName} is thinking...`;
+            }
         }
 
         function stopAssistantThinking() {
@@ -1276,13 +1306,7 @@
             `;
         }
 
-        function renderError(err) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'message-wrapper assistant';
-            wrapper.innerHTML = `<div class="message-bubble" style="background: #fee2e2; border-color: #fca5a5; color: #991b1b;">Error: ${err}</div>`;
-            chatContainer.appendChild(wrapper);
-            scrollToBottom();
-        }
+
 
         function useSuggestion(text) {
             chatInput.value = text;
