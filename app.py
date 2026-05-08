@@ -1,6 +1,17 @@
+import os
+import sys
+
+# Monkey patch for gevent if needed, but we'll try gthread first
+if os.environ.get("USE_GEVENT", "False").lower() == "true":
+    try:
+        import gevent.monkey
+        gevent.monkey.patch_all()
+    except ImportError:
+        pass
+
 from flask import Flask, render_template, request, jsonify, Response, send_from_directory
 from openai import OpenAI
-import os
+import uuid
 import uuid
 from datetime import datetime
 import json
@@ -339,6 +350,9 @@ def chat():
         reasoning_content = ""
         
         # Initial metadata - send immediately to keep connection alive
+        # Add padding to flush Render/Nginx buffers (4KB is usually enough)
+        yield ":" + " " * 4096 + "\n" 
+        
         yield json.dumps({
             "status": "start",
             "modelUsed": actual_label,
@@ -347,7 +361,9 @@ def chat():
         }) + "\n"
 
         try:
+            print(f"DEBUG: Starting API request to {config['model']}")
             completion = client.chat.completions.create(**params)
+            print(f"DEBUG: API request started, waiting for chunks...")
             for chunk in completion:
                 if not hasattr(chunk, "choices") or not chunk.choices:
                     continue
@@ -366,6 +382,9 @@ def chat():
                 
                 if chunk_data:
                     yield json.dumps(chunk_data) + "\n"
+                else:
+                    # Send a heartbeat to keep connection alive if chunk is empty
+                    yield "\n"
             
             end_time = datetime.now()
             elapsed_seconds = (end_time - start_time).total_seconds()
