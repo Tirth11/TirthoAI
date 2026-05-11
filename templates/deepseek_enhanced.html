@@ -725,11 +725,13 @@
         .tag-reasoning { background: #ede9fe; color: #6d28d9; }
         .tag-coding { background: #dcfce7; color: #15803d; }
         .tag-creative { background: #fce7f3; color: #be185d; }
+        .tag-image_generation { background: #fef3c7; color: #92400e; }
         .tag-general { background: #f1f5f9; color: #475569; }
         [data-theme="dark"] .tag-vision { background: #1e3a5f; color: #93c5fd; }
         [data-theme="dark"] .tag-reasoning { background: #2e1065; color: #c4b5fd; }
         [data-theme="dark"] .tag-coding { background: #052e16; color: #86efac; }
         [data-theme="dark"] .tag-creative { background: #500724; color: #f9a8d4; }
+        [data-theme="dark"] .tag-image_generation { background: #451a03; color: #fcd34d; }
         [data-theme="dark"] .tag-general { background: #1e293b; color: #94a3b8; }
         .model-list-scroll { max-height: 340px; overflow-y: auto; padding-bottom: 8px; }
     </style>
@@ -789,6 +791,10 @@
             <div class="footer-action" onclick="resetSystem()" style="color: #ef4444;">
                 <i class="fas fa-broom"></i>
                 <span>Lean Cache</span>
+            </div>
+            <div class="footer-action" onclick="testAgents()" id="testAgentsBtn">
+                <i class="fas fa-vial"></i>
+                <span>Test All Agents</span>
             </div>
             <div class="footer-action" onclick="toggleDarkMode()">
                 <i class="fas fa-moon" id="themeIcon"></i>
@@ -1531,8 +1537,8 @@
             } catch(e) { console.error('Failed to load models', e); }
         }
 
-        const CATEGORY_ORDER = ['auto', 'reasoning', 'vision', 'coding', 'creative', 'general'];
-        const CATEGORY_LABELS = { auto: 'Auto Select', reasoning: '🧠 Reasoning', vision: '👁️ Vision & Multimodal', coding: '💻 Coding', creative: '✍️ Creative', general: '⚡ General' };
+        const CATEGORY_ORDER = ['auto', 'reasoning', 'vision', 'coding', 'creative', 'image_generation', 'general'];
+        const CATEGORY_LABELS = { auto: 'Auto Select', reasoning: '🧠 Reasoning', vision: '👁️ Vision & Multimodal', coding: '💻 Coding', creative: '✍️ Creative', image_generation: '🎨 Image Generation', general: '⚡ General' };
 
         function renderModelList(models) {
             const list = document.getElementById('modelList');
@@ -1589,6 +1595,54 @@
         function closeModelPicker() {
             document.getElementById('modelPickerDropdown').classList.remove('open');
             document.getElementById('modelPickerChevron').style.transform = '';
+        }
+
+        async function testAgents() {
+            const btn = document.getElementById('testAgentsBtn');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Testing...</span>';
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
+
+            try {
+                const response = await fetch('/health');
+                const results = await response.json();
+                
+                let summary = "Agent Status:\n";
+                let allOnline = true;
+                for (const [name, status] of Object.entries(results)) {
+                    summary += `${status === 'online' ? '✅' : '❌'} ${name}: ${status}\n`;
+                    if (status !== 'online') allOnline = false;
+                }
+                
+                showToast(allOnline ? "All tested agents are online!" : "Some agents are offline.", allOnline ? "success" : "warning");
+                alert(summary); 
+            } catch (error) {
+                showToast("Failed to run health check", "error");
+            } finally {
+                btn.innerHTML = originalContent;
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            // Simple toast implementation
+            const toast = document.createElement('div');
+            toast.style.position = 'fixed';
+            toast.style.bottom = '20px';
+            toast.style.right = '20px';
+            toast.style.padding = '12px 24px';
+            toast.style.borderRadius = '8px';
+            toast.style.backgroundColor = type === 'success' ? '#10b981' : (type === 'error' ? '#ef4444' : '#3b82f6');
+            toast.style.color = 'white';
+            toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            toast.style.zIndex = '1000';
+            toast.style.fontSize = '14px';
+            toast.style.fontWeight = '500';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
         }
 
         // Close picker on outside click
