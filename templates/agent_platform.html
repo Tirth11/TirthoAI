@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TirthoAI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.5);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent-green: #10b981;
+            --accent-purple: #8b5cf6;
+            --accent-orange: #f59e0b;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--accent-purple));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-family: 'Outfit';
+        }
+
+        .logo-text {
+            font-family: 'Outfit';
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(to right, #fff, var(--text-dim));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .history-section {
+            margin-top: 24px;
+            padding: 0 16px;
+        }
+
+        .history-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .history-item {
+            padding: 10px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .history-item.active {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--primary);
+        }
+
+        .history-item .actions {
+            position: absolute;
+            right: 8px;
+            display: none;
+            gap: 8px;
+        }
+
+        .history-item:hover .actions {
+            display: flex;
+        }
+
+        .history-item i.action-icon {
+            font-size: 12px;
+            color: var(--text-dim);
+            transition: color 0.2s;
+        }
+
+        .history-item i.action-icon:hover {
+            color: white;
+        }
+
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .chat-history::-webkit-scrollbar { width: 4px; }
+        .chat-history::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+        .new-chat-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .user-panel {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            margin-top: auto;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* Header Dropdowns */
+        .selector-container {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #1e293b;
+            min-width: 220px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.7);
+            z-index: 2000;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-top: 10px;
+            padding: 8px 0;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: dropdownFadeIn 0.2s ease-out;
+        }
+
+        .dropdown-content.show {
+            display: block;
+        }
+
+        @keyframes dropdownFadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dropdown-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Thinking Process Panel */
+        .progress-panel {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: var(--text-dim);
+        }
+
+        .step-item.active {
+            color: var(--primary);
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Main Content */
+        .main-container { flex: 1; display: flex; flex-direction: column; position: relative; height: 100%; overflow: hidden; min-width: 0; }
+        .discovery-view { flex: 1; padding: 40px; overflow-y: auto; display: none; }
+        .discovery-view.active { display: block; }
+        .hero-section { text-align: center; margin-bottom: 48px; }
+        .hero-title { font-family: 'Outfit'; font-size: 42px; margin-bottom: 12px; }
+        .hero-subtitle { color: var(--text-dim); font-size: 18px; }
+        .category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto; }
+        .category-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 24px; cursor: pointer; transition: all 0.3s; }
+        .category-card:hover { transform: translateY(-5px); border-color: var(--primary); }
+        .category-icon { font-size: 32px; margin-bottom: 16px; }
+        .category-name { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+        .category-desc { font-size: 14px; color: var(--text-dim); margin-bottom: 20px; }
+        .category-meta { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid var(--border); }
+        .cost-tag { font-size: 12px; background: rgba(255, 255, 255, 0.05); padding: 4px 10px; border-radius: 20px; color: var(--text-dim); }
+
+        /* Chat View */
+        .chat-view { height: 100%; flex: 1; display: none; flex-direction: column; background: transparent; overflow: hidden; position: relative; }
+        .chat-view.active { display: flex; }
+        .chat-header { flex-shrink: 0; padding: 12px 24px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; backdrop-filter: blur(10px); background: rgba(15, 23, 42, 0.8); z-index: 100; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        .chat-messages { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; padding: 24px; display: flex; flex-direction: column; gap: 24px; scroll-behavior: smooth; }
+        .chat-messages::-webkit-scrollbar { width: 6px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .chat-messages::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        .message { display: flex; gap: 16px; max-width: 90%; }
+        .message.user { align-self: flex-end; flex-direction: row-reverse; }
+        .bubble { padding: 16px; border-radius: 16px; line-height: 1.6; font-size: 15px; position: relative; max-height: 60vh; overflow-y: auto; }
+        .message.user .bubble { background: var(--primary); color: white; border-top-right-radius: 4px; }
+        .message.assistant .bubble { background: var(--bg-card); border: 1px solid var(--border); border-top-left-radius: 4px; }
+
+        /* Input Area */
+        .input-container { flex-shrink: 0; padding: 24px; background: linear-gradient(to top, var(--bg-dark), transparent); border-top: 1px solid var(--border); }
+        .input-wrapper { position: relative; background: rgba(30, 41, 59, 0.5); border: 1px solid var(--border); border-radius: 16px; padding: 8px 16px; display: flex; align-items: center; gap: 12px; }
+        textarea { width: 100%; background: transparent; border: none; color: white; resize: none; padding: 8px; font-size: 16px; outline: none; }
+        .action-icon { cursor: pointer; color: var(--text-dim); transition: all 0.2s; }
+        .send-btn { padding: 8px 16px; background: var(--primary); border: none; border-radius: 10px; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        
+        #login-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .login-card { background: var(--bg-card); padding: 40px; border-radius: 24px; width: 100%; max-width: 400px; border: 1px solid var(--border); text-align: center; }
+        .login-input { width: 100%; padding: 14px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 12px; color: white; margin: 20px 0; }
+        .login-btn { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 12px; color: white; cursor: pointer; }
+
+        .thinking-block {
+            background: rgba(0, 0, 0, 0.2);
+            border-left: 3px solid var(--primary);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-dim);
+            margin: 12px 0;
+            display: none;
+        }
+        .thinking-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .toggle-thought {
+            font-size: 12px;
+            color: var(--primary);
+            cursor: pointer;
+            margin: 8px 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .toggle-thought:hover { background: rgba(59, 130, 246, 0.2); }
+
+        .agent-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--primary);
+            background: rgba(59, 130, 246, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .msg-footer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+        .footer-tag {
+            font-size: 10px;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .copy-btn-container {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .bubble:hover .copy-btn-container { opacity: 1; }
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover { background: var(--primary); color: white; }
+        
+        .markdown-body pre {
+            background: rgba(0,0,0,0.3);
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 12px 0;
+            border: 1px solid var(--border);
+        }
+        .markdown-body code { font-family: 'Consolas', monospace; font-size: 0.9em; }
+        .markdown-body ul, .markdown-body ol { padding-left: 20px; margin: 12px 0; }
+        .markdown-body p { margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <div id="login-overlay">
+        <div class="login-card">
+            <h2 style="font-family: 'Outfit';">Welcome Back</h2>
+            <input type="text" id="login-id" class="login-input" placeholder="Enter ID">
+            <button class="login-btn" onclick="handleLogin()">Get Started</button>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div style="padding: 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px;">
+            <div class="logo">T</div>
+            <h2 style="font-size: 18px;">TirthoAI</h2>
+        </div>
+        
+        <div style="padding: 16px;">
+            <div style="position: relative; margin-bottom: 16px;">
+                <i class="fas fa-search" style="position: absolute; left: 12px; top: 11px; font-size: 13px; color: var(--text-dim);"></i>
+                <input type="text" id="chat-search" placeholder="Search chats..." style="width: 100%; padding: 8px 12px 8px 36px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; color: white; font-size: 13px;">
+            </div>
+            <button class="new-chat-btn" onclick="showDiscovery()" style="width: 100%; margin: 0;">
+                <i class="fas fa-plus"></i> New Chat
+            </button>
+        </div>
+
+        <div class="chat-history" id="chat-history"></div>
+
+        <div class="user-panel">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="avatar" id="user-avatar">U</div>
+                <div style="flex: 1;">
+                    <div id="display-name" style="font-size: 13px; font-weight: 600;">Guest User</div>
+                    <div id="display-credits" style="font-size: 11px; color: var(--accent-green);">100.0 Credits</div>
+                </div>
+                <i class="fas fa-sign-out-alt" onclick="handleLogout()" style="cursor: pointer; color: var(--text-dim);"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div id="discovery-view" class="discovery-view active">
+            <div class="hero-section">
+                <h1 class="hero-title">TirthoAI</h1>
+            </div>
+            <div class="category-grid" id="category-grid"></div>
+        </div>
+
+        <div id="chat-view" class="chat-view">
+            <div class="chat-header">
+                <div class="header-top">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span id="current-category-icon" style="font-size: 24px;">⚡</span>
+                        <div>
+                            <div class="dropdown" onclick="toggleDropdown(event, 'category-dropdown-list')">
+                                <div style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <h3 id="current-category-name" style="font-size: 16px;">Auto Mode</h3>
+                                    <i class="fas fa-chevron-down" style="font-size: 10px; color: var(--text-dim);"></i>
+                                </div>
+                                <div class="dropdown-content" id="category-dropdown-list">
+                                    <!-- Categories will be injected here -->
+                                </div>
+                            </div>
+                            <p id="current-agent-status" style="font-size: 11px; color: var(--text-dim);">Intelligent Router Active</p>
+                        </div>
+                    </div>
+                    <div class="selector-container">
+                        <div class="dropdown" onclick="toggleDropdown(event, 'agent-dropdown-list')">
+                            <div class="dropdown-btn">
+                                <i class="fas fa-robot"></i> <span id="active-agent-display">Auto Router</span> <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="dropdown-content" id="agent-dropdown-list" style="width: 280px; left: auto; right: 0;">
+                                <!-- Models will be injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="message-area">
+                <div class="progress-panel" id="progress-panel">
+                    <div class="step-item" id="step-intent"><i class="fas fa-circle-notch fa-spin"></i> Analyzing intent...</div>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <i class="fas fa-paperclip action-icon"></i>
+                    <textarea id="user-input" placeholder="Type a message or '/' for commands..." rows="1"></textarea>
+                        <div class="action-btns">
+                            <label class="icon-btn"><i class="fas fa-paperclip"></i><input type="file" hidden></label>
+                            <div class="icon-btn"><i class="fas fa-microphone"></i></div>
+                        </div>
+                        <button class="send-btn" id="send-btn">
+                            Send <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentConversationId = null;
+        let selectedCategory = null;
+        let selectedModel = null;
+        let allModels = [];
+
+        const categories = [
+            { id: 'reasoning', name: 'Reasoning', icon: '🧠', desc: 'Complex logic, math, and deep thinking.', cost: '5.0 Credits', best: 'DeepSeek R1' },
+            { id: 'image_generation', name: 'Image Gen', icon: '🎨', desc: 'State-of-the-art text-to-image creation.', cost: '10.0 Credits', best: 'SD 3.5 Large' },
+            { id: 'vision', name: 'Vision', icon: '👁️', desc: 'Analyze images and multimodal datasets.', cost: '4.0 Credits', best: 'Llama 4 Maverick' },
+            { id: 'coding', name: 'Coding', icon: '🚀', desc: 'Expert level code generation and refactoring.', cost: '3.0 Credits', best: 'Qwen 2.5 Coder' },
+            { id: 'creative', name: 'Creative', icon: '✍️', desc: 'Blogging, storytelling, and ad copy.', cost: '2.0 Credits', best: 'Kimi 2.6' },
+            { id: 'general', name: 'General', icon: '🦙', desc: 'Fast and reliable daily assistant.', cost: '1.0 Credits', best: 'Llama 3.3 70B' }
+        ];
+
+        async function init() {
+            await checkSession();
+            await fetchModels();
+            renderCategories();
+            populateDropdowns();
+            showDiscovery();
+            
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
+            });
+
+            const userInput = document.getElementById('user-input');
+            userInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+                if(this.scrollHeight > 200) {
+                    this.style.overflowY = 'auto';
+                    this.style.height = '200px';
+                } else {
+                    this.style.overflowY = 'hidden';
+                }
+            });
+        }
+
+        function copyToClipboard(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = btn.querySelector('i');
+                icon.className = 'fas fa-check';
+                setTimeout(() => {
+                    icon.className = 'far fa-copy';
+                }, 2000);
+            });
+        }
+
+        function toggleDropdown(event, id) {
+            event.stopPropagation();
+            const el = document.getElementById(id);
+            const isShown = el.classList.contains('show');
+            document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
+            if (!isShown) el.classList.add('show');
+        }
+
+        async function fetchModels() {
+            try {
+                const res = await fetch('/models');
+                allModels = await res.json();
+            } catch (e) {
+                console.error("Failed to fetch models", e);
+            }
+        }
+
+        function renderCategories() {
+            const grid = document.getElementById('category-grid');
+            if(!grid) return;
+            
+            // Auto Mode Hero first
+            let html = `
+                <div class="category-card" onclick="startCategory('auto')" style="grid-column: 1 / -1; background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1)); border: 1px solid var(--primary);">
+                    <div class="category-icon">⚡</div>
+                    <div class="category-name">Auto Select Mode (Recommended)</div>
+                    <div class="category-desc">Intelligent router selects the best model for your prompt automatically.</div>
+                </div>
+            `;
+            
+            html += categories.map(cat => `
+                <div class="category-card" onclick="startCategory('${cat.id}')">
+                    <div class="category-icon">${cat.icon}</div>
+                    <div class="category-name">${cat.name}</div>
+                    <div class="category-desc">${cat.desc}</div>
+                    <div class="category-meta">
+                        <span class="cost-tag">${cat.cost} / run</span>
+                    </div>
+                </div>
+            `).join('');
+            grid.innerHTML = html;
+        }
+
+        function populateDropdowns() {
+            const agentList = document.getElementById('agent-dropdown-list');
+            const catList = document.getElementById('category-dropdown-list');
+            
+            if(catList) {
+                let catHtml = `<div class="dropdown-item" onclick="startCategory('auto')"><i class="fas fa-bolt"></i> Auto Mode</div>`;
+                catHtml += categories.map(cat => `
+                    <div class="dropdown-item" onclick="startCategory('${cat.id}')">
+                        <span>${cat.icon}</span> ${cat.name}
+                    </div>
+                `).join('');
+                catList.innerHTML = catHtml;
+            }
+
+            if(agentList) {
+                let agentHtml = `<div class="dropdown-item" onclick="startCategory('auto')" style="border-bottom: 1px solid var(--border); font-weight: bold; color: var(--primary);">
+                    <i class="fas fa-bolt"></i> Auto Router (Smart)
+                </div>`;
+                
+                // Group models by category
+                const grouped = allModels.reduce((acc, m) => {
+                    const cat = m.category || 'general';
+                    if(!acc[cat]) acc[cat] = [];
+                    acc[cat].push(m);
+                    return acc;
+                }, {});
+
+                categories.forEach(cat => {
+                    if(grouped[cat.id]) {
+                        agentHtml += `<div style="padding: 8px 16px; font-size: 11px; text-transform: uppercase; color: var(--text-dim); background: rgba(0,0,0,0.1);">${cat.name}</div>`;
+                        grouped[cat.id].forEach(model => {
+                            agentHtml += `
+                                <div class="dropdown-item" onclick="selectModel('${model.label}')">
+                                    <span style="font-size: 14px;">${model.badge || '🤖'}</span>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 500;">${model.label}</div>
+                                        <div style="font-size: 10px; color: var(--text-dim);">${model.cost} Credits</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                });
+                agentList.innerHTML = agentHtml;
+            }
+        }
+
+        function selectModel(modelLabel) {
+            const model = allModels.find(m => m.label === modelLabel);
+            if(!model) return;
+            
+            selectedModel = modelLabel;
+            selectedCategory = categories.find(c => c.id === model.category) || categories.find(c => c.id === 'general');
+            
+            updateHeaderUI(modelLabel);
+            
+            document.getElementById('discovery-view').classList.remove('active');
+            document.getElementById('chat-view').classList.add('active');
+        }
+        async function handleLogin() {
+            const id = document.getElementById('login-id').value;
+            if(!id) return;
+            const res = await fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({identifier: id})
+            });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('login-overlay').style.display = 'none';
+                checkSession();
+            }
+        }
+
+        async function handleLogout() {
+            const res = await fetch('/logout');
+            if(res.ok) window.location.reload();
+        }
+
+        async function checkSession() {
+            const res = await fetch('/user/me');
+            const data = await res.json();
+            if(data.logged_in) {
+                currentUser = data;
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('display-name').innerText = data.identifier;
+                document.getElementById('display-credits').innerText = data.credits_balance.toFixed(1) + ' Credits';
+                loadHistory();
+            } else {
+                currentUser = null;
+            }
+        }
+
+        async function loadHistory() {
+            const res = await fetch('/conversations');
+            const history = await res.json();
+            window.allConversations = history;
+            renderHistory();
+        }
+
+        function renderHistory(filter = '') {
+            const history = window.allConversations || [];
+            const container = document.getElementById('chat-history');
+            
+            const filtered = history.filter(c => c.title.toLowerCase().includes(filter.toLowerCase()));
+            
+            // Group by time_period
+            const groups = filtered.reduce((acc, c) => {
+                const p = c.time_period || 'Previous';
+                if(!acc[p]) acc[p] = [];
+                acc[p].push(c);
+                return acc;
+            }, {});
+
+            let html = '';
+            ['Today', 'Yesterday', 'Previous'].forEach(p => {
+                if(groups[p] && groups[p].length > 0) {
+                    html += `<div class="history-section">
+                        <div class="history-label">${p}</div>
+                        ${groups[p].map(chat => `
+                            <div class="history-item ${chat.id === currentConversationId ? 'active' : ''}" onclick="loadChat('${chat.id}')">
+                                <i class="far fa-comment"></i>
+                                <span style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${chat.title}</span>
+                                <span class="mode-badge-small">${chat.category}</span>
+                                <div class="actions">
+                                    <i class="fas fa-trash action-icon" onclick="event.stopPropagation(); deleteChat('${chat.id}')"></i>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>`;
+                }
+            });
+            container.innerHTML = html || '<div style="padding: 20px; text-align: center; color: var(--text-dim);">No chats found</div>';
+        }
+
+        async function deleteChat(id) {
+            if(confirm('Delete this chat?')) {
+                await fetch(`/conversation/delete/${id}`, { method: 'POST' });
+                if(currentConversationId === id) showDiscovery();
+                loadHistory();
+            }
+        }
+
+        function showDiscovery() {
+            document.getElementById('discovery-view').classList.add('active');
+            document.getElementById('chat-view').classList.remove('active');
+            currentConversationId = null;
+            selectedCategory = { id: 'auto', name: 'Auto Mode', icon: '⚡', best: 'Intelligent Router' };
+            updateHeaderUI();
+        }
+
+        function updateHeaderUI(modelOverride = null) {
+            const displayLabel = modelOverride || (selectedCategory.id === 'auto' ? 'Auto Router' : selectedCategory.best);
+            const icon = modelOverride ? (allModels.find(m => m.label === modelOverride)?.badge || '🤖') : selectedCategory.icon;
+            
+            document.getElementById('current-category-icon').innerText = icon;
+            document.getElementById('current-category-name').innerText = modelOverride || selectedCategory.name;
+            document.getElementById('current-agent-status').innerText = selectedModel ? 'Specific Model Active' : (selectedCategory.id === 'auto' ? 'Intelligent Router Active' : 'Specialist Agent Active');
+            document.getElementById('active-agent-display').innerText = displayLabel;
+        }
+
+        async function startCategory(catId) {
+            selectedModel = null;
+            selectedCategory = catId === 'auto' ? { id: 'auto', name: 'Auto Mode', icon: '⚡', best: 'Intelligent Router' } : categories.find(c => c.id === catId);
+            updateHeaderUI();
+            
+            document.getElementById('discovery-view').classList.remove('active');
+            document.getElementById('chat-view').classList.add('active');
+        }
+
+        async function loadChat(id) {
+            currentConversationId = id;
+            document.getElementById('discovery-view').classList.remove('active');
+            document.getElementById('chat-view').classList.add('active');
+            
+            const res = await fetch(`/conversation/${id}`);
+            const data = await res.json();
+            
+            const area = document.getElementById('message-area');
+            area.innerHTML = '';
+            data.messages.forEach(msg => appendMessage(msg));
+            renderHistory();
+        }
+
+        function appendMessage(msg) {
+            const area = document.getElementById('message-area');
+            const div = document.createElement('div');
+            div.className = `message ${msg.role}`;
+            
+            const avatar = msg.role === 'user' ? 'U' : 'T';
+            
+            let thoughtHtml = '';
+            if (msg.role === 'assistant' && msg.reasoning) {
+                const thoughtId = `thought-${Math.random().toString(36).substr(2, 9)}`;
+                thoughtHtml = `
+                    <div class="thinking-block" id="${thoughtId}">
+                        <div class="thinking-header">
+                            <span><i class="fas fa-microchip"></i> Thinking Process</span>
+                            <span class="thinking-timer">${msg.latency ? msg.latency + 's' : ''}</span>
+                        </div>
+                        <div style="white-space: pre-wrap;">${msg.reasoning}</div>
+                    </div>
+                    <div class="toggle-thought" onclick="toggleThought('${thoughtId}')">
+                        <i class="fas fa-lightbulb"></i> View Thinking Details
+                    </div>
+                `;
+            }
+
+            let agentHeader = '';
+            if (msg.role === 'assistant') {
+                agentHeader = `
+                    <div class="agent-badge">
+                        <i class="fas fa-robot"></i> ${msg.model_name || 'AI Assistant'}
+                    </div>
+                `;
+            }
+
+            let footer = '';
+            if(msg.role === 'assistant' && msg.credits_used !== undefined) {
+                footer = `
+                    <div class="msg-footer">
+                        <div class="footer-tag" title="Model Used"><i class="fas fa-brain"></i> ${msg.model_name || 'AI'}</div>
+                        <div class="footer-tag" title="Credits Used"><i class="fas fa-coins"></i> ${msg.credits_used.toFixed(1)} Cr</div>
+                        <div class="footer-tag" title="Response Latency"><i class="fas fa-clock"></i> ${msg.latency || 0}s</div>
+                        <div class="footer-tag" title="Tokens (In/Out)"><i class="fas fa-keyboard"></i> ${msg.tokens || 'N/A'}</div>
+                    </div>
+                `;
+            }
+
+            let processDetails = '';
+            if (msg.routing_steps) {
+                processDetails = `
+                    <div class="thinking-block" id="process-${Math.random().toString(36).substr(2, 9)}" style="margin-top: 10px; border-left-color: var(--accent-green);">
+                        <div class="thinking-header">Orchestration Flow</div>
+                        ${msg.routing_steps.map(s => `<div style="font-size: 11px; margin-bottom: 4px;"><i class="fas fa-check" style="color: var(--accent-green);"></i> ${s}</div>`).join('')}
+                    </div>
+                `;
+            }
+
+            div.innerHTML = `
+                <div class="avatar">${avatar}</div>
+                <div class="bubble">
+                    ${agentHeader}
+                    <div class="copy-btn-container">
+                        <button class="copy-btn" onclick="copyToClipboard(this, ${JSON.stringify(msg.content).replace(/"/g, '&quot;')})">
+                            <i class="far fa-copy"></i>
+                        </button>
+                    </div>
+                    ${thoughtHtml}
+                    <div class="content markdown-body">${msg.role === 'assistant' ? marked.parse(msg.content) : msg.content}</div>
+                    ${processDetails}
+                    ${footer}
+                </div>
+            `;
+            area.appendChild(div);
+            
+            // Reliable scroll to bottom
+            setTimeout(() => {
+                area.scrollTo({
+                    top: area.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }
+
+        function toggleThought(id) {
+            const block = document.getElementById(id);
+            if (block) {
+                const isHidden = block.style.display === 'none' || block.style.display === '';
+                block.style.display = isHidden ? 'block' : 'none';
+            }
+        }
+
+        function useCommand(cmd) {
+            const catId = cmd.replace('/', '');
+            startCategory(catId === 'image' ? 'image_generation' : catId);
+            document.getElementById('command-menu').style.display = 'none';
+        }
+
+        document.getElementById('user-input').oninput = (e) => {
+            const val = e.target.value;
+            const menu = document.getElementById('command-menu');
+            if (menu) {
+                if(val.startsWith('/')) {
+                    menu.style.display = 'block';
+                } else {
+                    menu.style.display = 'none';
+                }
+            }
+        };
+
+        document.getElementById('send-btn').onclick = async () => {
+            if (!currentUser) {
+                document.getElementById('login-overlay').style.display = 'flex';
+                return;
+            }
+
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if(!text) return;
+            
+            // Lazy create conversation if needed
+            if (!currentConversationId) {
+                const cRes = await fetch('/conversation/new', { 
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ category: selectedCategory.id })
+                });
+                const cData = await cRes.json();
+                currentConversationId = cData.id;
+                loadHistory(); // Refresh sidebar to show the new chat
+            }
+
+            input.value = '';
+            const menu = document.getElementById('command-menu');
+            if (menu) menu.style.display = 'none';
+            appendMessage({role: 'user', content: text});
+            
+            // Show progress panel
+            const progress = document.getElementById('progress-panel');
+            progress.style.display = 'block';
+            progress.innerHTML = ''; // Clear old steps
+            
+            const steps = [
+                "Analyzing user intent...",
+                "Selecting optimal agent...",
+                "Connecting to multi-agent mesh...",
+                "Generating response..."
+            ];
+            
+            steps.forEach((s, i) => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'step-item';
+                stepDiv.id = `step-${i}`;
+                stepDiv.innerHTML = `<i class="far fa-circle"></i> ${s}`;
+                progress.appendChild(stepDiv);
+                
+                setTimeout(() => {
+                    stepDiv.classList.add('active');
+                    stepDiv.querySelector('i').className = 'fas fa-spinner fa-spin';
+                }, i * 400);
+            });
+            
+            // Call API
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        message: text,
+                        conversation_id: currentConversationId,
+                        category: selectedCategory ? selectedCategory.id : 'general',
+                        model: selectedModel
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    throw new Error(data.error || 'Server connection failed');
+                }
+
+                // Mark all steps as done
+                steps.forEach((_, i) => {
+                    const stepDiv = document.getElementById(`step-${i}`);
+                    if(stepDiv) {
+                        stepDiv.classList.remove('active');
+                        stepDiv.querySelector('i').className = 'fas fa-check-circle';
+                        stepDiv.style.color = 'var(--accent-green)';
+                    }
+                });
+
+                setTimeout(() => {
+                    progress.style.display = 'none';
+                    if(data.content) {
+                        appendMessage({
+                            role: 'assistant', 
+                            content: data.content,
+                            reasoning: data.reasoning,
+                            model_name: data.modelUsed,
+                            credits_used: data.creditsUsed,
+                            latency: data.latency,
+                            tokens: data.tokens,
+                            routing_steps: data.routing_steps
+                        });
+                        checkSession(); // Update credits
+                        loadHistory(); // Refresh to catch auto-rename
+                    }
+                }, 300);
+            } catch (err) {
+                progress.style.display = 'none';
+                appendMessage({
+                    role: 'assistant', 
+                    content: '⚠️ Error: ' + err.message,
+                    model_name: 'System Error',
+                    credits_used: 0,
+                    latency: 0,
+                    tokens: '0/0'
+                });
+            }
+        };
+
+        function updateProgress(id, state) {
+            const item = document.getElementById(id);
+            if(state === 'active') {
+                item.classList.add('active');
+                item.querySelector('i').className = 'fas fa-spinner fa-spin';
+            } else if(state === 'done') {
+                item.classList.remove('active');
+                item.querySelector('i').className = 'fas fa-check-circle';
+                item.style.color = 'var(--accent-green)';
+            }
+        }
+
+        function resetProgress() {
+            ['step-intent', 'step-agent', 'step-connect', 'step-process'].forEach(id => {
+                const item = document.getElementById(id);
+                item.classList.remove('active');
+                item.querySelector('i').className = 'far fa-circle';
+                item.style.color = 'var(--text-dim)';
+            });
+        }
+
+        // Handle enter key
+        document.getElementById('user-input').onkeydown = (e) => {
+            if(e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('send-btn').click();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

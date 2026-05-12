@@ -1,6 +1,7 @@
 flask
 openai
 python-dotenv
+google-generativeai
 gunicorn
 gevent
 eventlet
