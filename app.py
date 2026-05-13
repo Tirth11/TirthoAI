@@ -340,10 +340,14 @@ def chat():
         data = request.get_json()
         text = data.get('message') or ""
         conv_id = data.get('conversation_id')
-        category = data.get('category', 'general')
-        
-        # Select model
+        # Select model and category safely
         selected_model = data.get('model')
+        if selected_model and not isinstance(selected_model, str):
+            selected_model = str(selected_model)
+            
+        category = data.get('category', 'general')
+        if category and not isinstance(category, str):
+            category = str(category)
         
         # --- Simple Spelling Correction / Cleanup ---
         def cleanup_text(t):
