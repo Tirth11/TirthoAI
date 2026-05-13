@@ -20,6 +20,7 @@ def init_db():
         id TEXT PRIMARY KEY,
         identifier TEXT UNIQUE, -- Email or Phone
         credits_balance REAL DEFAULT 100.0,
+        last_credit_allocation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -59,13 +60,19 @@ def init_db():
 
     conn.commit()
     
-    # Migration: Add files column to messages if it doesn't exist
+    # Migration: Add columns if they don't exist
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN last_credit_allocation TIMESTAMP')
+        cursor.execute('UPDATE users SET last_credit_allocation = CURRENT_TIMESTAMP WHERE last_credit_allocation IS NULL')
+    except sqlite3.OperationalError:
+        pass
+        
     try:
         cursor.execute('ALTER TABLE messages ADD COLUMN files TEXT')
-        conn.commit()
     except sqlite3.OperationalError:
-        pass # Already exists
+        pass
         
+    conn.commit()
     conn.close()
     print("Database initialized successfully.")
 

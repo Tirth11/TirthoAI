@@ -464,10 +464,7 @@
                 <div class="avatar" id="user-avatar">U</div>
                 <div style="flex: 1;">
                     <div id="display-name" style="font-size: 13px; font-weight: 600;">Guest User</div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <div id="display-credits" style="font-size: 11px; color: var(--accent-green);">100.0 Credits</div>
-                        <i class="fas fa-plus-circle" onclick="topUpCredits()" style="cursor: pointer; font-size: 10px; color: var(--text-dim);" title="Reset to 100 Credits"></i>
-                    </div>
+                    <div id="display-credits" style="font-size: 11px; color: var(--accent-green);">100.0 Credits</div>
                 </div>
                 <i class="fas fa-sign-out-alt" onclick="handleLogout()" style="cursor: pointer; color: var(--text-dim);"></i>
             </div>
@@ -732,17 +729,7 @@
                 loadHistory();
             } else {
                 currentUser = null;
-                document.getElementById('display-name').innerText = 'Guest User';
                 document.getElementById('display-credits').innerText = '100.0 Credits';
-            }
-        }
-
-        async function topUpCredits() {
-            if (!currentUser) return;
-            const res = await fetch('/user/topup', { method: 'POST' });
-            if (res.ok) {
-                checkSession();
-                alert('Credits reset to 100.0!');
             }
         }
 
@@ -1064,19 +1051,31 @@
             try {
                 const res = await fetch('/chat', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        message: text,
+                        text: text,
                         conversation_id: currentConversationId,
-                        category: selectedCategory ? selectedCategory.id : 'general',
-                        model: selectedModel
+                        category: selectedCategory,
+                        model: selectedModel,
+                        files: currentFiles
                     })
                 });
                 
                 const data = await res.json();
                 
                 if (!res.ok) {
-                    throw new Error(data.error || 'Server connection failed');
+                    progress.style.display = 'none';
+                    if (data.expired) {
+                        appendMessage({ role: 'assistant', content: `⚠️ ${data.error}` });
+                    } else {
+                        appendMessage({ role: 'assistant', content: `Error: ${data.error}` });
+                    }
+                    return;
+                }
+
+                // Update balance if returned
+                if (data.new_balance !== undefined) {
+                    document.getElementById('display-credits').innerText = data.new_balance.toFixed(1) + ' Credits';
                 }
 
                 // Mark all steps as done

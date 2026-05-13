@@ -57,26 +57,26 @@ if not os.path.exists(UPLOAD_FOLDER):
 # -------------------------------------------------------------------
 MODEL_CONFIGS = {
     # Reasoning
-    "Nemotron 3 Super 120B": {"model": "nvidia/nemotron-3-super-120b-a12b", "api_key": os.getenv("NVIDIA_API_KEY_NEMOTRON_3"), "category": "reasoning", "cost": 7.0, "badge": "🏛️", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True}, "reasoning_budget": 16384}},
-    "DeepSeek V4 Pro": {"model": "deepseek-ai/deepseek-v4-pro", "api_key": os.getenv("NVIDIA_API_KEY_PRO"), "category": "reasoning", "cost": 5.0, "badge": "🔬", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
-    "GLM 5.1": {"model": "z-ai/glm-5.1", "api_key": os.getenv("NVIDIA_API_KEY_GLM51"), "category": "reasoning", "cost": 6.0, "badge": "🧠", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True, "clear_thinking": False}}},
-    "DeepSeek R1": {"model": "deepseek-ai/deepseek-r1", "api_key": os.getenv("KIMI_26_KEY"), "category": "reasoning", "cost": 4.0, "badge": "🧠", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
-    "Stockmark 2 100B": {"model": "stockmark/stockmark-2-100b-instruct", "api_key": os.getenv("NVIDIA_API_KEY_STOCKMARK"), "category": "reasoning", "cost": 4.5, "badge": "📈", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
+    "Nemotron 3 Super 120B": {"model": "nvidia/nemotron-3-super-120b-a12b", "api_key": os.getenv("NVIDIA_API_KEY_NEMOTRON_3"), "category": "reasoning", "cost": 10.0, "badge": "🏛️", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True}, "reasoning_budget": 16384}},
+    "DeepSeek V4 Pro": {"model": "deepseek-ai/deepseek-v4-pro", "api_key": os.getenv("NVIDIA_API_KEY_PRO"), "category": "reasoning", "cost": 10.0, "badge": "🔬", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
+    "GLM 5.1": {"model": "z-ai/glm-5.1", "api_key": os.getenv("NVIDIA_API_KEY_GLM51"), "category": "reasoning", "cost": 10.0, "badge": "🧠", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True, "clear_thinking": False}}},
+    "DeepSeek R1": {"model": "deepseek-ai/deepseek-r1", "api_key": os.getenv("KIMI_26_KEY"), "category": "reasoning", "cost": 10.0, "badge": "🧠", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
+    "Stockmark 2 100B": {"model": "stockmark/stockmark-2-100b-instruct", "api_key": os.getenv("NVIDIA_API_KEY_STOCKMARK"), "category": "reasoning", "cost": 10.0, "badge": "📈", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
     
     # Vision
     "Llama 3.2 90B Vision": {"model": "meta/llama-3.2-90b-vision-instruct", "api_key": os.getenv("NVIDIA_API_KEY_VISION"), "category": "vision", "cost": 5.0, "badge": "🖼️", "provider": "nvidia", "supports_vision": True},
     
     # Coding
-    "Qwen 3 Coder 480B": {"model": "qwen/qwen3-coder-480b-a35b-instruct", "api_key": os.getenv("NVIDIA_API_KEY_STEP_GEMMA"), "category": "coding", "cost": 4.5, "badge": "💻", "provider": "nvidia"},
-    "Llama 3.3 70B (Coding)": {"model": "meta/llama-3.3-70b-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "coding", "cost": 2.5, "badge": "💻", "provider": "nvidia"},
+    "Qwen 3 Coder 480B": {"model": "qwen/qwen3-coder-480b-a35b-instruct", "api_key": os.getenv("NVIDIA_API_KEY_STEP_GEMMA"), "category": "coding", "cost": 15.0, "badge": "💻", "provider": "nvidia"},
+    "Llama 3.3 70B (Coding)": {"model": "meta/llama-3.3-70b-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "coding", "cost": 15.0, "badge": "💻", "provider": "nvidia"},
     
     # Creative
     "Kimi 2.6": {"model": "moonshotai/kimi-k2.6", "api_key": os.getenv("NVIDIA_API_KEY_KIMI_K26"), "category": "creative", "cost": 2.0, "badge": "✍️", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
-    "Gemma 2 27B": {"model": "google/gemma-2-27b-it", "api_key": os.getenv("KIMI_26_KEY"), "category": "creative", "cost": 1.5, "badge": "💎", "provider": "nvidia"},
+    "Gemma 2 27B": {"model": "google/gemma-2-27b-it", "api_key": os.getenv("KIMI_26_KEY"), "category": "creative", "cost": 2.0, "badge": "💎", "provider": "nvidia"},
     
     # General
     "Sarvam M": {"model": "sarvamai/sarvam-m", "api_key": os.getenv("NVIDIA_API_KEY_SARVAM"), "category": "general", "cost": 1.0, "badge": "🇮🇳", "provider": "nvidia"},
-    "Minimax m2.7": {"model": "minimaxai/minimax-m2.7", "api_key": os.getenv("NVIDIA_API_KEY_MINIMAX"), "category": "general", "cost": 1.5, "badge": "🌀", "provider": "nvidia"},
+    "Minimax m2.7": {"model": "minimaxai/minimax-m2.7", "api_key": os.getenv("NVIDIA_API_KEY_MINIMAX"), "category": "general", "cost": 1.0, "badge": "🌀", "provider": "nvidia"},
     "Step 3.5 Flash": {"model": "stepfun-ai/step-3.5-flash", "api_key": os.getenv("NVIDIA_API_KEY_STEP_GEMMA"), "category": "general", "cost": 1.0, "badge": "⚡", "provider": "nvidia"},
     "Llama 3.3 70B": {"model": "meta/llama-3.3-70b-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "general", "cost": 1.0, "badge": "🦙", "provider": "nvidia"}
 }
@@ -189,26 +189,58 @@ def get_me():
         return jsonify({
             'logged_in': False, 
             'identifier': 'Guest User', 
-            'credits_balance': 100.0, # Default for guest
+            'credits_balance': 100.0,
             'id': get_current_user()
         })
     
     uid = session.get('user_id')
+    
+    # Check and Reset Credits if 24h passed
     conn = database.get_db_connection()
     user = conn.execute('SELECT * FROM users WHERE id = ?', (uid,)).fetchone()
-    conn.close()
-    return jsonify({'logged_in': True, 'identifier': user['identifier'], 'credits_balance': user['credits_balance'], 'id': user['id']})
+    
+    if not user:
+        conn.close()
+        return jsonify({
+            'logged_in': False, 
+            'identifier': 'Guest User', 
+            'credits_balance': 100.0,
+            'id': get_current_user()
+        })
+    
+    import datetime
+    now = datetime.datetime.now()
+    
+    # Defensive check for last_credit_allocation
+    last_reset_val = user['last_credit_allocation']
+    if not last_reset_val:
+        last_reset = now
+        conn.execute('UPDATE users SET last_credit_allocation = ? WHERE id = ?', 
+                     (now.strftime('%Y-%m-%d %H:%M:%S'), uid))
+        conn.commit()
+    else:
+        try:
+            last_reset = datetime.datetime.strptime(last_reset_val, '%Y-%m-%d %H:%M:%S')
+        except:
+            last_reset = now
+    
+    reset_time = last_reset + datetime.timedelta(hours=24)
+    if now >= reset_time:
+        conn.execute('UPDATE users SET credits_balance = 100.0, last_credit_allocation = ? WHERE id = ?', 
+                     (now.strftime('%Y-%m-%d %H:%M:%S'), uid))
+        conn.commit()
+        user = conn.execute('SELECT * FROM users WHERE id = ?', (uid,)).fetchone()
+        reset_time = now + datetime.timedelta(hours=24)
 
-@app.route('/user/topup', methods=['POST'])
-def topup_credits():
-    if not is_logged_in():
-        return jsonify({'error': 'Login required'}), 401
-    uid = session.get('user_id')
-    conn = database.get_db_connection()
-    conn.execute('UPDATE users SET credits_balance = 100.0 WHERE id = ?', (uid,))
-    conn.commit()
     conn.close()
-    return jsonify({'success': True, 'new_balance': 100.0})
+    
+    return jsonify({
+        'logged_in': True, 
+        'identifier': user['identifier'], 
+        'credits_balance': user['credits_balance'], 
+        'id': user['id'],
+        'next_reset': reset_time.strftime('%Y-%m-%d %H:%M:%S')
+    })
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'docx', 'xlsx', 'csv'}
 
@@ -343,6 +375,34 @@ def chat():
             
         config = MODEL_CONFIGS[model_label]
         
+        # Calculate dynamic cost
+        actual_cost = config['cost']
+        if len(clean_text) > 500: # Long answer / detailed answer
+            actual_cost = max(actual_cost, 2.0)
+        if files: # File upload analysis
+            actual_cost = max(actual_cost, 5.0)
+        
+        # Check Credits (Logged in users only)
+        if is_logged_in():
+            uid = session.get('user_id')
+            conn = database.get_db_connection()
+            user = conn.execute('SELECT credits_balance, last_credit_allocation FROM users WHERE id = ?', (uid,)).fetchone()
+            conn.close()
+            
+            if user['credits_balance'] < actual_cost:
+                import datetime
+                now = datetime.datetime.now()
+                last_reset_val = user['last_credit_allocation']
+                try:
+                    last_reset = datetime.datetime.strptime(last_reset_val, '%Y-%m-%d %H:%M:%S') if last_reset_val else now
+                except:
+                    last_reset = now
+                
+                reset_time = last_reset + datetime.timedelta(hours=24)
+                
+                msg = f"Your credits have expired. Kindly wait until {reset_time.strftime('%I:%M %p %Y-%m-%d')} to receive your next 100 credits."
+                return jsonify({'error': msg, 'expired': True, 'reset_at': reset_time.strftime('%Y-%m-%d %H:%M:%S')}), 402
+
         # Validate API Key
         if not config.get('api_key'):
             return jsonify({'error': f'API key for {model_label} is missing. Please check your .env file.'}), 500
@@ -422,7 +482,7 @@ def chat():
             latency = round(time.time() - start_time, 2)
             tokens_in = completion.usage.prompt_tokens
             tokens_out = completion.usage.completion_tokens
-            credits_used = config['cost']
+            credits_used = actual_cost
         except Exception as api_error:
             print(f"API ERROR ({model_label}):", str(api_error))
             return jsonify({'error': f'Agent {model_label} failed: {str(api_error)}'}), 500
@@ -433,6 +493,16 @@ def chat():
                              tokens_in=tokens_in, tokens_out=tokens_out,
                              latency=latency, credits_used=credits_used)
         
+        # Get updated balance
+        new_balance = 0.0
+        if is_logged_in():
+            conn = database.get_db_connection()
+            new_user_state = conn.execute('SELECT credits_balance FROM users WHERE id = ?', (session.get('user_id'),)).fetchone()
+            new_balance = new_user_state['credits_balance']
+            conn.close()
+        else:
+            new_balance = 100.0
+
         routing_steps = [
             "Intent Classifier analyzes prompt...",
             f"Orchestrator selected {model_label}",
@@ -448,7 +518,8 @@ def chat():
             'creditsUsed': credits_used,
             'latency': latency,
             'tokens': f"{tokens_in}/{tokens_out}",
-            'routing_steps': routing_steps
+            'routing_steps': routing_steps,
+            'new_balance': new_balance
         })
         
     except Exception as e:
@@ -457,4 +528,5 @@ def chat():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
+    database.init_db()
     app.run(host='0.0.0.0', port=5000, debug=True)
