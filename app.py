@@ -107,8 +107,8 @@ def auto_select_model(text):
     Intelligently select the best model based on prompt content.
     Returns model_label.
     """
-    t = text.lower().strip()
-    word_count = len(t.split())
+    t = (text or "").lower().strip()
+    word_count = len(t.split()) if t else 0
 
     greet_patterns = ["hi", "hello", "hey", "how are you", "what's up", "whats up", "helo", "hy"]
     if word_count <= 5 and any(t.startswith(g) or t == g for g in greet_patterns):
@@ -338,7 +338,7 @@ def chat():
     
     try:
         data = request.get_json()
-        text = data.get('message')
+        text = data.get('message') or ""
         conv_id = data.get('conversation_id')
         category = data.get('category', 'general')
         
@@ -357,6 +357,7 @@ def chat():
                 "imge": "image",
                 "picutre": "picture"
             }
+            if not t: return ""
             words = t.split()
             fixed_words = [corrections.get(w.lower(), w) for w in words]
             return " ".join(fixed_words)
