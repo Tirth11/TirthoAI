@@ -14,7 +14,13 @@ import traceback
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.environ.get('SECRET_KEY', 'default_secret_key_for_render_123')
+
+# Initialize database tables if they don't exist
+try:
+    database.init_db()
+except Exception as e:
+    print("DB Init Error:", e)
 
 # Configuration
 UPLOAD_FOLDER = 'uploads'
