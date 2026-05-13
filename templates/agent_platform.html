@@ -464,7 +464,10 @@
                 <div class="avatar" id="user-avatar">U</div>
                 <div style="flex: 1;">
                     <div id="display-name" style="font-size: 13px; font-weight: 600;">Guest User</div>
-                    <div id="display-credits" style="font-size: 11px; color: var(--accent-green);">100.0 Credits</div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div id="display-credits" style="font-size: 11px; color: var(--accent-green);">100.0 Credits</div>
+                        <i class="fas fa-plus-circle" onclick="topUpCredits()" style="cursor: pointer; font-size: 10px; color: var(--text-dim);" title="Reset to 100 Credits"></i>
+                    </div>
                 </div>
                 <i class="fas fa-sign-out-alt" onclick="handleLogout()" style="cursor: pointer; color: var(--text-dim);"></i>
             </div>
@@ -523,12 +526,15 @@
             </div>
 
             <div class="input-container">
+                <div id="upload-preview" style="display: flex; gap: 8px; flex-wrap: wrap; padding: 8px 0; display: none;"></div>
                 <div class="input-wrapper">
-                    <i class="fas fa-paperclip action-icon"></i>
+                    <label class="action-icon" title="Upload Files">
+                        <i class="fas fa-paperclip"></i>
+                        <input type="file" id="file-input" hidden multiple onchange="handleFileSelect(event)">
+                    </label>
                     <textarea id="user-input" placeholder="Type a message or '/' for commands..." rows="1"></textarea>
                         <div class="action-btns">
-                            <label class="icon-btn"><i class="fas fa-paperclip"></i><input type="file" hidden></label>
-                            <div class="icon-btn"><i class="fas fa-microphone"></i></div>
+                            <div class="icon-btn" title="Voice Input"><i class="fas fa-microphone"></i></div>
                         </div>
                         <button class="send-btn" id="send-btn">
                             Send <i class="fas fa-paper-plane"></i>
@@ -545,14 +551,14 @@
         let selectedCategory = null;
         let selectedModel = null;
         let allModels = [];
+        let uploadedFiles = [];
 
         const categories = [
             { id: 'reasoning', name: 'Reasoning', icon: '🧠', desc: 'Complex logic, math, and deep thinking.', cost: '5.0 Credits', best: 'DeepSeek R1' },
-            { id: 'image_generation', name: 'Image Gen', icon: '🎨', desc: 'State-of-the-art text-to-image creation.', cost: '10.0 Credits', best: 'SD 3.5 Large' },
-            { id: 'vision', name: 'Vision', icon: '👁️', desc: 'Analyze images and multimodal datasets.', cost: '4.0 Credits', best: 'Llama 4 Maverick' },
-            { id: 'coding', name: 'Coding', icon: '🚀', desc: 'Expert level code generation and refactoring.', cost: '3.0 Credits', best: 'Gemini 3 Flash' },
-            { id: 'creative', name: 'Creative', icon: '✍️', desc: 'Blogging, storytelling, and ad copy.', cost: '2.0 Credits', best: 'Kimi 2.6' },
-            { id: 'general', name: 'General', icon: '🦙', desc: 'Fast and reliable daily assistant.', cost: '1.0 Credits', best: 'Llama 3.3 70B' }
+            { id: 'vision', name: 'Vision', icon: '👁️', desc: 'Analyze images and describe visual content.', cost: '5.0 Credits', best: 'Llama 3.2 90B' },
+            { id: 'coding', name: 'Coding', icon: '💻', desc: 'Expert level programming and debugging.', cost: '4.5 Credits', best: 'Qwen 3 Coder' },
+            { id: 'creative', name: 'Creative', icon: '🎨', desc: 'Storytelling, poetry, and creative writing.', cost: '2.0 Credits', best: 'Kimi 2.6' },
+            { id: 'general', name: 'General', icon: '🌐', desc: 'Quick answers and general information.', cost: '1.0 Credits', best: 'Llama 3.3 70B' }
         ];
 
         async function init() {
@@ -726,6 +732,17 @@
                 loadHistory();
             } else {
                 currentUser = null;
+                document.getElementById('display-name').innerText = 'Guest User';
+                document.getElementById('display-credits').innerText = '100.0 Credits';
+            }
+        }
+
+        async function topUpCredits() {
+            if (!currentUser) return;
+            const res = await fetch('/user/topup', { method: 'POST' });
+            if (res.ok) {
+                checkSession();
+                alert('Credits reset to 100.0!');
             }
         }
 
@@ -875,6 +892,23 @@
                 `;
             }
 
+            let filesHtml = '';
+            if(msg.files && msg.files.length > 0) {
+                filesHtml = `<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                    ${msg.files.map(f => `
+                        <a href="${f.url}" target="_blank" style="text-decoration: none;">
+                            ${f.is_image ? 
+                                `<img src="${f.url}" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid var(--border);">` : 
+                                `<div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; color: white;">
+                                    <i class="fas fa-file-alt" style="font-size: 20px; color: var(--primary);"></i>
+                                    <span style="font-size: 13px;">${f.filename.split('_').slice(1).join('_')}</span>
+                                </div>`
+                            }
+                        </a>
+                    `).join('')}
+                </div>`;
+            }
+
             div.innerHTML = `
                 <div class="avatar">${avatar}</div>
                 <div class="bubble">
@@ -885,6 +919,7 @@
                         </button>
                     </div>
                     ${thoughtHtml}
+                    ${filesHtml}
                     <div class="content markdown-body">${msg.role === 'assistant' ? marked.parse(msg.content) : msg.content}</div>
                     ${processDetails}
                     ${footer}
@@ -906,6 +941,46 @@
             if (block) {
                 const isHidden = block.style.display === 'none' || block.style.display === '';
                 block.style.display = isHidden ? 'block' : 'none';
+            }
+        }
+
+        async function handleFileSelect(event) {
+            const files = event.target.files;
+            if(!files.length) return;
+            
+            const preview = document.getElementById('upload-preview');
+            preview.style.display = 'flex';
+            
+            for(let file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const res = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    uploadedFiles.push(data);
+                    const fileDiv = document.createElement('div');
+                    fileDiv.className = 'file-tag';
+                    fileDiv.style = 'background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 11px; display: flex; align-items: center; gap: 8px;';
+                    fileDiv.innerHTML = `
+                        <i class="fas ${data.is_image ? 'fa-image' : 'fa-file'}"></i>
+                        <span>${file.name}</span>
+                        <i class="fas fa-times" style="cursor: pointer;" onclick="removeFile('${data.filename}', this)"></i>
+                    `;
+                    preview.appendChild(fileDiv);
+                }
+            }
+        }
+
+        function removeFile(filename, el) {
+            uploadedFiles = uploadedFiles.filter(f => f.filename !== filename);
+            el.parentElement.remove();
+            if(!uploadedFiles.length) {
+                document.getElementById('upload-preview').style.display = 'none';
             }
         }
 
@@ -952,7 +1027,13 @@
             input.value = '';
             const menu = document.getElementById('command-menu');
             if (menu) menu.style.display = 'none';
-            appendMessage({role: 'user', content: text});
+            
+            const currentFiles = [...uploadedFiles];
+            uploadedFiles = [];
+            document.getElementById('upload-preview').innerHTML = '';
+            document.getElementById('upload-preview').style.display = 'none';
+            
+            appendMessage({role: 'user', content: text, files: currentFiles});
             
             // Show progress panel
             const progress = document.getElementById('progress-panel');

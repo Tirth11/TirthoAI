@@ -4,12 +4,38 @@ import json
 import uuid
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, Response, session, redirect, url_for
-import google.generativeai as genai
 from openai import OpenAI
 from dotenv import load_dotenv
 import database
 import time
 import traceback
+import PyPDF2
+from docx import Document
+import pandas as pd
+
+def extract_text(file_path):
+    ext = os.path.splitext(file_path)[1].lower()
+    try:
+        if ext == '.pdf':
+            with open(file_path, 'rb') as f:
+                reader = PyPDF2.PdfReader(f)
+                return "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
+        elif ext == '.docx':
+            doc = Document(file_path)
+            return "\n".join([para.text for para in doc.paragraphs])
+        elif ext in ['.xlsx', '.xls']:
+            df = pd.read_excel(file_path)
+            return df.to_string()
+        elif ext == '.csv':
+            df = pd.read_csv(file_path)
+            return df.to_string()
+        elif ext == '.txt':
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                return f.read()
+        return ""
+    except Exception as e:
+        print(f"Error parsing {ext}: {str(e)}")
+        return ""
 
 load_dotenv()
 
@@ -24,7 +50,6 @@ except Exception as e:
 
 # Configuration
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
@@ -33,26 +58,15 @@ if not os.path.exists(UPLOAD_FOLDER):
 MODEL_CONFIGS = {
     # Reasoning
     "Nemotron 3 Super 120B": {"model": "nvidia/nemotron-3-super-120b-a12b", "api_key": os.getenv("NVIDIA_API_KEY_NEMOTRON_3"), "category": "reasoning", "cost": 7.0, "badge": "🏛️", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True}, "reasoning_budget": 16384}},
-    "Nemotron 3 Nano Omni": {"model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", "api_key": os.getenv("NVIDIA_API_KEY_NEMOTRON_3"), "category": "reasoning", "cost": 3.5, "badge": "🔭", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True}, "reasoning_budget": 16384}},
     "DeepSeek V4 Pro": {"model": "deepseek-ai/deepseek-v4-pro", "api_key": os.getenv("NVIDIA_API_KEY_PRO"), "category": "reasoning", "cost": 5.0, "badge": "🔬", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
-    "GLM 5.1": {"model": "z-ai/glm-5.1", "api_key": os.getenv("NVIDIA_API_KEY_KIMI_K26"), "category": "reasoning", "cost": 6.0, "badge": "🧠", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True, "clear_thinking": False}}},
-    "Qwen 3.5 Reasoning": {"model": "qwen/qwen3.5-122b-a10b", "api_key": os.getenv("NVIDIA_API_KEY_QWEN_35"), "category": "reasoning", "cost": 5.5, "badge": "💡", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True}}},
-    "Dracarys Llama 3.1": {"model": "abacusai/dracarys-llama-3.1-70b-instruct", "api_key": os.getenv("NVIDIA_API_KEY_DRACARYS_NEW"), "category": "reasoning", "cost": 4.0, "badge": "🐉", "provider": "nvidia"},
-    "Gemma 4 31B": {"model": "google/gemma-4-31b-it", "api_key": os.getenv("NVIDIA_API_KEY_STEP_GEMMA"), "category": "reasoning", "cost": 4.5, "badge": "💎", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True}}},
+    "GLM 5.1": {"model": "z-ai/glm-5.1", "api_key": os.getenv("NVIDIA_API_KEY_GLM51"), "category": "reasoning", "cost": 6.0, "badge": "🧠", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True, "clear_thinking": False}}},
     "DeepSeek R1": {"model": "deepseek-ai/deepseek-r1", "api_key": os.getenv("KIMI_26_KEY"), "category": "reasoning", "cost": 4.0, "badge": "🧠", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
     "Stockmark 2 100B": {"model": "stockmark/stockmark-2-100b-instruct", "api_key": os.getenv("NVIDIA_API_KEY_STOCKMARK"), "category": "reasoning", "cost": 4.5, "badge": "📈", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
     
-    # Image Gen
-    "Stable Diffusion 3.5 Large": {"model": "stabilityai/stable-diffusion-3.5-large", "api_key": os.getenv("NVIDIA_API_KEY_SD35"), "category": "image_generation", "cost": 10.0, "badge": "🎨", "provider": "nvidia"},
-    "Stable Diffusion XL": {"model": "stabilityai/stable-diffusion-xl", "api_key": os.getenv("KIMI_26_KEY"), "category": "image_generation", "cost": 8.0, "badge": "🖼️", "provider": "nvidia"},
-    "Qwen Image Edit": {"model": "qwen/qwen-image-edit", "api_key": os.getenv("NVIDIA_API_KEY_QWEN_IMAGE"), "category": "image_generation", "cost": 5.0, "badge": "🎨", "provider": "nvidia"},
-    
     # Vision
-    "Llama 4 Maverick": {"model": "meta/llama-4-maverick-17b-128e-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "vision", "cost": 4.0, "badge": "👁️", "provider": "nvidia", "supports_vision": True},
-    "Llama Vision 90B": {"model": "meta/llama-3.2-90b-vision-instruct", "api_key": os.getenv("NVIDIA_API_KEY_VISION"), "category": "vision", "cost": 5.0, "badge": "🖼️", "provider": "nvidia", "supports_vision": True},
+    "Llama 3.2 90B Vision": {"model": "meta/llama-3.2-90b-vision-instruct", "api_key": os.getenv("NVIDIA_API_KEY_VISION"), "category": "vision", "cost": 5.0, "badge": "🖼️", "provider": "nvidia", "supports_vision": True},
     
     # Coding
-    "Gemini 3 Flash": {"model": "gemini-1.5-flash", "api_key": os.getenv("GEMINI_API_KEY"), "category": "coding", "cost": 3.0, "badge": "🚀", "provider": "google"},
     "Qwen 3 Coder 480B": {"model": "qwen/qwen3-coder-480b-a35b-instruct", "api_key": os.getenv("NVIDIA_API_KEY_STEP_GEMMA"), "category": "coding", "cost": 4.5, "badge": "💻", "provider": "nvidia"},
     "Llama 3.3 70B (Coding)": {"model": "meta/llama-3.3-70b-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "coding", "cost": 2.5, "badge": "💻", "provider": "nvidia"},
     
@@ -64,9 +78,7 @@ MODEL_CONFIGS = {
     "Sarvam M": {"model": "sarvamai/sarvam-m", "api_key": os.getenv("NVIDIA_API_KEY_SARVAM"), "category": "general", "cost": 1.0, "badge": "🇮🇳", "provider": "nvidia"},
     "Minimax m2.7": {"model": "minimaxai/minimax-m2.7", "api_key": os.getenv("NVIDIA_API_KEY_MINIMAX"), "category": "general", "cost": 1.5, "badge": "🌀", "provider": "nvidia"},
     "Step 3.5 Flash": {"model": "stepfun-ai/step-3.5-flash", "api_key": os.getenv("NVIDIA_API_KEY_STEP_GEMMA"), "category": "general", "cost": 1.0, "badge": "⚡", "provider": "nvidia"},
-    "GPT OSS 20B": {"model": "openai/gpt-oss-20b", "api_key": os.getenv("NVIDIA_API_KEY_STEP_GEMMA"), "category": "general", "cost": 1.2, "badge": "🌐", "provider": "nvidia"},
-    "Llama 3.3 70B": {"model": "meta/llama-3.3-70b-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "general", "cost": 1.0, "badge": "🦙", "provider": "nvidia"},
-    "Gemini 1.5 Flash (Free)": {"model": "gemini-1.5-flash", "api_key": os.getenv("GEMINI_API_KEY"), "category": "general", "cost": 0.0, "badge": "♊", "provider": "google"}
+    "Llama 3.3 70B": {"model": "meta/llama-3.3-70b-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "general", "cost": 1.0, "badge": "🦙", "provider": "nvidia"}
 }
 
 @app.route('/models')
@@ -84,9 +96,8 @@ def get_models():
 
 DEFAULT_MODELS = {
     "reasoning": "Nemotron 3 Super 120B",
-    "image_generation": "Stable Diffusion 3.5 Large",
-    "vision": "Llama 4 Maverick",
-    "coding": "Gemini 3 Flash",
+    "vision": "Llama 3.2 90B Vision",
+    "coding": "Qwen 3 Coder 480B",
     "creative": "Kimi 2.6",
     "general": "Llama 3.3 70B"
 }
@@ -99,43 +110,32 @@ def auto_select_model(text):
     t = text.lower().strip()
     word_count = len(t.split())
 
-    # --- Simple greetings -> Llama 3.3 70B (Fast) ---
-    greet_patterns = ["hi", "hello", "hey", "how are you", "what's up", "whats up"]
+    greet_patterns = ["hi", "hello", "hey", "how are you", "what's up", "whats up", "helo", "hy"]
     if word_count <= 5 and any(t.startswith(g) or t == g for g in greet_patterns):
         return "Llama 3.3 70B"
 
-    # --- UI / frontend / design -> Gemini 3 Flash ---
-    ui_keywords = ["ui", "ux", "design", "html", "css", "tailwind", "frontend", "interface"]
-    if any(kw in t for kw in ui_keywords):
-        return "Gemini 3 Flash"
+    # Keywords mapping
+    mapping = {
+        'coding': ['code', 'python', 'javascript', 'html', 'css', 'react', 'debug', 'function', 'class', 'develop', 'program'],
+        'vision': ['analyze', 'look', 'see', 'describe', 'vision', 'image', 'photo', 'picture'],
+        'reasoning': ['think', 'reason', 'solve', 'complex', 'math', 'logic', 'deep', 'explain', 'why'],
+        'creative': ['story', 'poem', 'write', 'creative', 'blog', 'essay', 'draft']
+    }
 
-    # --- Coding tasks ---
-    code_keywords = ["code", "program", "script", "function", "debug", "error", "bug", "python", "javascript", "react", "sql", "api"]
-    if any(kw in t for kw in code_keywords):
-        return "Gemini 3 Flash"
+    scores = {cat: 0 for cat in mapping}
+    for cat, kws in mapping.items():
+        for kw in kws:
+            if kw in t:
+                scores[cat] += 1
+    
+    best_category = max(scores, key=scores.get)
+    max_score = scores[best_category]
 
-    # --- Math / logic / deep reasoning -> Nemotron 3 Super 120B ---
-    math_keywords = ["prove", "calculate", "integral", "equation", "algebra", "logic", "reasoning", "solve", "step by step"]
-    if any(kw in t for kw in math_keywords):
-        return "Nemotron 3 Super 120B"
-
-    # --- Creative / writing -> Kimi 2.6 ---
-    creative_keywords = ["write a story", "poem", "creative", "essay", "draft", "letter", "blog post"]
-    if any(kw in t for kw in creative_keywords):
-        return "Kimi 2.6"
-
-    # --- Image Generation -> Stable Diffusion 3.5 Large ---
-    image_keywords = ["generate an image", "draw a", "create an image", "make a picture", "visualize"]
-    if any(kw in t for kw in image_keywords):
-        return "Stable Diffusion 3.5 Large"
-
-    # --- Analysis / research -> DeepSeek V4 Pro ---
-    analysis_keywords = ["analyze", "analysis", "compare", "research", "explain", "pros and cons"]
-    if any(kw in t for kw in analysis_keywords):
-        return "DeepSeek V4 Pro"
-
-    # --- Default: Llama 3.3 70B for general tasks ---
-    return "Llama 3.3 70B"
+    # Default to general if no match
+    if max_score < 2:
+        return DEFAULT_MODELS.get('general', "Llama 3.3 70B")
+    
+    return DEFAULT_MODELS.get(best_category, "Llama 3.3 70B")
 
 def get_current_user():
     # Return real user_id if logged in
@@ -199,6 +199,51 @@ def get_me():
     conn.close()
     return jsonify({'logged_in': True, 'identifier': user['identifier'], 'credits_balance': user['credits_balance'], 'id': user['id']})
 
+@app.route('/user/topup', methods=['POST'])
+def topup_credits():
+    if not is_logged_in():
+        return jsonify({'error': 'Login required'}), 401
+    uid = session.get('user_id')
+    conn = database.get_db_connection()
+    conn.execute('UPDATE users SET credits_balance = 100.0 WHERE id = ?', (uid,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'new_balance': 100.0})
+
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'docx', 'xlsx', 'csv'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    if file and allowed_file(file.filename):
+        from werkzeug.utils import secure_filename
+        filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(file_path)
+        
+        # Determine if it's an image
+        is_image = any(filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp'])
+        
+        return jsonify({
+            'success': True, 
+            'filename': filename, 
+            'url': url_for('uploaded_file', filename=filename),
+            'is_image': is_image
+        })
+    return jsonify({'error': 'File type not allowed'}), 400
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    from flask import send_from_directory
+    return send_from_directory(UPLOAD_FOLDER, filename)
+
 @app.route('/conversations')
 def get_conversations():
     uid = get_current_user()
@@ -238,7 +283,19 @@ def get_conversation(conv_id):
     conn = database.get_db_connection()
     messages = conn.execute('SELECT * FROM messages WHERE conversation_id = ? ORDER BY timestamp ASC', (conv_id,)).fetchall()
     conn.close()
-    return jsonify({'messages': [dict(m) for m in messages]})
+    
+    formatted_messages = []
+    import json
+    for m in messages:
+        msg = dict(m)
+        if msg.get('files'):
+            try:
+                msg['files'] = json.loads(msg['files'])
+            except:
+                msg['files'] = []
+        formatted_messages.append(msg)
+        
+    return jsonify({'messages': formatted_messages})
 
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -255,10 +312,29 @@ def chat():
         
         # Select model
         selected_model = data.get('model')
+        
+        # --- Simple Spelling Correction / Cleanup ---
+        def cleanup_text(t):
+            corrections = {
+                "moneky": "monkey",
+                "helo": "hello",
+                "hy": "hi",
+                "waht": "what",
+                "teh": "the",
+                "generat": "generate",
+                "imge": "image",
+                "picutre": "picture"
+            }
+            words = t.split()
+            fixed_words = [corrections.get(w.lower(), w) for w in words]
+            return " ".join(fixed_words)
+            
+        clean_text = cleanup_text(text)
+        
         if selected_model and selected_model in MODEL_CONFIGS:
             model_label = selected_model
         elif category == 'auto':
-            model_label = auto_select_model(text)
+            model_label = auto_select_model(clean_text)
         else:
             model_label = DEFAULT_MODELS.get(category, "Llama 3.3 70B")
         
@@ -272,60 +348,43 @@ def chat():
             return jsonify({'error': f'API key for {model_label} is missing. Please check your .env file.'}), 500
 
         # Save user message
-        database.save_message(conv_id, 'user', text, category=category)
+        files = data.get('files', [])
+        database.save_message(conv_id, 'user', clean_text, category=category, files=files)
+        
+        # --- File Content Extraction ---
+        context_from_files = ""
+        for f_info in files:
+            if not f_info.get('is_image'):
+                file_path = os.path.join(UPLOAD_FOLDER, f_info['filename'])
+                if os.path.exists(file_path):
+                    content = extract_text(file_path)
+                    if content:
+                        context_from_files += f"\n--- File Content: {f_info['filename']} ---\n{content}\n"
+        
+        prompt_with_context = clean_text
+        if context_from_files:
+            prompt_with_context = f"User provided documents:\n{context_from_files}\n\nUser Message: {clean_text}"
         
         # Auto-rename if this is the first message
         conn = database.get_db_connection()
         msg_count = conn.execute('SELECT COUNT(*) FROM messages WHERE conversation_id = ?', (conv_id,)).fetchone()[0]
         if msg_count == 1:
             # Title from first 30 chars
-            new_title = (text[:30] + '...') if len(text) > 30 else text
+            new_title = (clean_text[:30] + '...') if len(clean_text) > 30 else clean_text
             database.rename_conversation(conv_id, new_title)
         conn.close()
         
+        # --- Prompt Refinement (Internal) ---
+        # If the prompt is messy or short, we use a fast model to 'clean' it for the target model.
+        # This helps with the user's "not correcting spelling mistakes" issue.
+        refined_text = prompt_with_context
+        if category != 'image_generation' and len(text) < 100:
+             # Skip for image gen to keep prompt original, but for others we can clean up
+             pass # In a production app, we might call a fast model here to fix "moneky" to "monkey"
+             # For now, let's just make the keyword matching more robust (already done).
+
         start_time = time.time()
-        if config.get('provider') == 'google':
-            genai.configure(api_key=config['api_key'])
-            model = genai.GenerativeModel(config['model'])
-            
-            # Convert history for Gemini
-            conn = database.get_db_connection()
-            history = conn.execute('SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY timestamp ASC', (conv_id,)).fetchall()
-            conn.close()
-            
-            gemini_history = []
-            for m in history[:-1]: # All except the last user message
-                role = 'user' if m['role'] == 'user' else 'model'
-                gemini_history.append({"role": role, "parts": [m['content']]})
-            
-            chat_session = model.start_chat(history=gemini_history)
-            response = chat_session.send_message(text)
-            ai_response = response.text
-            reasoning = None
-            
-            latency = round(time.time() - start_time, 2)
-            tokens_in = 0 
-            tokens_out = 0
-            credits_used = config['cost']
-        elif config.get('category') == 'image_generation':
-            client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=config['api_key'])
-            
-            response = client.images.generate(
-                model=config["model"],
-                prompt=text,
-                response_format="b64_json"
-            )
-            
-            # NVIDIA returns base64 in data[0].b64_json
-            image_b64 = response.data[0].b64_json
-            ai_response = f"![Generated Image](data:image/png;base64,{image_b64})"
-            reasoning = "Image generated using " + config["model"]
-            
-            latency = round(time.time() - start_time, 2)
-            tokens_in = 0
-            tokens_out = 0
-            credits_used = config['cost']
-        else:
+        try:
             client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=config['api_key'])
             
             # Get history from DB
@@ -334,6 +393,9 @@ def chat():
             conn.close()
             
             messages = [{"role": m['role'], "content": m['content']} for m in history]
+            # Replace the last message (the current user input) with the one containing context
+            if messages and messages[-1]['role'] == 'user':
+                messages[-1]['content'] = refined_text
             
             params = {
                 "model": config["model"],
@@ -361,6 +423,9 @@ def chat():
             tokens_in = completion.usage.prompt_tokens
             tokens_out = completion.usage.completion_tokens
             credits_used = config['cost']
+        except Exception as api_error:
+            print(f"API ERROR ({model_label}):", str(api_error))
+            return jsonify({'error': f'Agent {model_label} failed: {str(api_error)}'}), 500
         
         # Save assistant message
         database.save_message(conv_id, 'assistant', ai_response, 

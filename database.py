@@ -51,12 +51,21 @@ def init_db():
         tokens_out INTEGER DEFAULT 0,
         latency REAL DEFAULT 0.0,
         credits_used REAL DEFAULT 0.0,
+        files TEXT, -- JSON array of file objects
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (conversation_id) REFERENCES conversations (id)
     )
     ''')
 
     conn.commit()
+    
+    # Migration: Add files column to messages if it doesn't exist
+    try:
+        cursor.execute('ALTER TABLE messages ADD COLUMN files TEXT')
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass # Already exists
+        
     conn.close()
     print("Database initialized successfully.")
 
@@ -115,13 +124,16 @@ def create_conversation(user_id, title='New Chat', category=None):
     conn.close()
     return conv_id
 
-def save_message(conv_id, role, content, model_name=None, category=None, tokens_in=0, tokens_out=0, latency=0.0, credits_used=0.0):
+def save_message(conv_id, role, content, model_name=None, category=None, tokens_in=0, tokens_out=0, latency=0.0, credits_used=0.0, files=None):
     conn = get_db_connection()
     msg_id = str(uuid.uuid4())
+    import json
+    files_json = json.dumps(files) if files else None
+    
     conn.execute('''
-        INSERT INTO messages (id, conversation_id, role, content, model_name, category, tokens_in, tokens_out, latency, credits_used)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (msg_id, conv_id, role, content, model_name, category, tokens_in, tokens_out, latency, credits_used))
+        INSERT INTO messages (id, conversation_id, role, content, model_name, category, tokens_in, tokens_out, latency, credits_used, files)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (msg_id, conv_id, role, content, model_name, category, tokens_in, tokens_out, latency, credits_used, files_json))
     
     # Deduct credits if assistant
     if role == 'assistant' and credits_used > 0:
