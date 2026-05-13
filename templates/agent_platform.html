@@ -48,9 +48,14 @@
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            transition: all 0.3s ease;
+            transition: margin-left 0.3s ease;
             z-index: 100;
             flex-shrink: 0;
+            margin-left: 0;
+        }
+
+        .sidebar.closed {
+            margin-left: -280px;
         }
 
         .sidebar-header {
@@ -468,6 +473,9 @@
 
     <div class="main-container">
         <div id="discovery-view" class="discovery-view active">
+            <button onclick="toggleSidebar()" style="position: absolute; top: 24px; left: 24px; background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 20px; z-index: 10;" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-dim)'">
+                <i class="fas fa-bars"></i>
+            </button>
             <div class="hero-section">
                 <h1 class="hero-title">TirthoAI</h1>
             </div>
@@ -478,6 +486,9 @@
             <div class="chat-header">
                 <div class="header-top">
                     <div style="display: flex; align-items: center; gap: 12px;">
+                        <button onclick="toggleSidebar()" style="background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 18px; padding-right: 8px;" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-dim)'">
+                            <i class="fas fa-bars"></i>
+                        </button>
                         <span id="current-category-icon" style="font-size: 24px;">⚡</span>
                         <div>
                             <div class="dropdown" onclick="toggleDropdown(event, 'category-dropdown-list')">
@@ -576,6 +587,10 @@
                     icon.className = 'far fa-copy';
                 }, 2000);
             });
+        }
+
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('closed');
         }
 
         function toggleDropdown(event, id) {
