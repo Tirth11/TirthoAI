@@ -35,28 +35,36 @@ MODEL_CONFIGS = {
     "Nemotron 3 Super 120B": {"model": "nvidia/nemotron-3-super-120b-a12b", "api_key": os.getenv("NVIDIA_API_KEY_NEMOTRON_3"), "category": "reasoning", "cost": 7.0, "badge": "🏛️", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True}, "reasoning_budget": 16384}},
     "Nemotron 3 Nano Omni": {"model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", "api_key": os.getenv("NVIDIA_API_KEY_NEMOTRON_3"), "category": "reasoning", "cost": 3.5, "badge": "🔭", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True}, "reasoning_budget": 16384}},
     "DeepSeek V4 Pro": {"model": "deepseek-ai/deepseek-v4-pro", "api_key": os.getenv("NVIDIA_API_KEY_PRO"), "category": "reasoning", "cost": 5.0, "badge": "🔬", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
-    "GLM 5.1": {"model": "z-ai/glm-5.1", "api_key": os.getenv("NVIDIA_API_KEY_GLM51"), "category": "reasoning", "cost": 6.0, "badge": "🧠", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True}}},
+    "GLM 5.1": {"model": "z-ai/glm-5.1", "api_key": os.getenv("NVIDIA_API_KEY_KIMI_K26"), "category": "reasoning", "cost": 6.0, "badge": "🧠", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True, "clear_thinking": False}}},
+    "Qwen 3.5 Reasoning": {"model": "qwen/qwen3.5-122b-a10b", "api_key": os.getenv("NVIDIA_API_KEY_QWEN_35"), "category": "reasoning", "cost": 5.5, "badge": "💡", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True}}},
+    "Dracarys Llama 3.1": {"model": "abacusai/dracarys-llama-3.1-70b-instruct", "api_key": os.getenv("NVIDIA_API_KEY_DRACARYS_NEW"), "category": "reasoning", "cost": 4.0, "badge": "🐉", "provider": "nvidia"},
+    "Gemma 4 31B": {"model": "google/gemma-4-31b-it", "api_key": os.getenv("NVIDIA_API_KEY_STEP_GEMMA"), "category": "reasoning", "cost": 4.5, "badge": "💎", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"enable_thinking": True}}},
     "DeepSeek R1": {"model": "deepseek-ai/deepseek-r1", "api_key": os.getenv("KIMI_26_KEY"), "category": "reasoning", "cost": 4.0, "badge": "🧠", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
     "Stockmark 2 100B": {"model": "stockmark/stockmark-2-100b-instruct", "api_key": os.getenv("NVIDIA_API_KEY_STOCKMARK"), "category": "reasoning", "cost": 4.5, "badge": "📈", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
     
     # Image Gen
     "Stable Diffusion 3.5 Large": {"model": "stabilityai/stable-diffusion-3.5-large", "api_key": os.getenv("NVIDIA_API_KEY_SD35"), "category": "image_generation", "cost": 10.0, "badge": "🎨", "provider": "nvidia"},
     "Stable Diffusion XL": {"model": "stabilityai/stable-diffusion-xl", "api_key": os.getenv("KIMI_26_KEY"), "category": "image_generation", "cost": 8.0, "badge": "🖼️", "provider": "nvidia"},
+    "Qwen Image Edit": {"model": "qwen/qwen-image-edit", "api_key": os.getenv("NVIDIA_API_KEY_QWEN_IMAGE"), "category": "image_generation", "cost": 5.0, "badge": "🎨", "provider": "nvidia"},
     
     # Vision
     "Llama 4 Maverick": {"model": "meta/llama-4-maverick-17b-128e-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "vision", "cost": 4.0, "badge": "👁️", "provider": "nvidia", "supports_vision": True},
     "Llama Vision 90B": {"model": "meta/llama-3.2-90b-vision-instruct", "api_key": os.getenv("NVIDIA_API_KEY_VISION"), "category": "vision", "cost": 5.0, "badge": "🖼️", "provider": "nvidia", "supports_vision": True},
     
     # Coding
-    "Qwen 2.5 Coder": {"model": "qwen/qwen2.5-coder-32b-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "coding", "cost": 3.0, "badge": "🚀", "provider": "nvidia"},
-    "GLM 4.7": {"model": "meta/llama-3.3-70b-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "coding", "cost": 2.5, "badge": "💻", "provider": "nvidia"},
+    "Gemini 3 Flash": {"model": "gemini-1.5-flash", "api_key": os.getenv("GEMINI_API_KEY"), "category": "coding", "cost": 3.0, "badge": "🚀", "provider": "google"},
+    "Qwen 3 Coder 480B": {"model": "qwen/qwen3-coder-480b-a35b-instruct", "api_key": os.getenv("NVIDIA_API_KEY_STEP_GEMMA"), "category": "coding", "cost": 4.5, "badge": "💻", "provider": "nvidia"},
+    "Llama 3.3 70B (Coding)": {"model": "meta/llama-3.3-70b-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "coding", "cost": 2.5, "badge": "💻", "provider": "nvidia"},
     
     # Creative
-    "Kimi 2.6": {"model": "meta/llama-3.3-70b-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "creative", "cost": 2.0, "badge": "✍️", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
+    "Kimi 2.6": {"model": "moonshotai/kimi-k2.6", "api_key": os.getenv("NVIDIA_API_KEY_KIMI_K26"), "category": "creative", "cost": 2.0, "badge": "✍️", "provider": "nvidia", "extra_body": {"chat_template_kwargs": {"thinking": True}}},
     "Gemma 2 27B": {"model": "google/gemma-2-27b-it", "api_key": os.getenv("KIMI_26_KEY"), "category": "creative", "cost": 1.5, "badge": "💎", "provider": "nvidia"},
     
     # General
     "Sarvam M": {"model": "sarvamai/sarvam-m", "api_key": os.getenv("NVIDIA_API_KEY_SARVAM"), "category": "general", "cost": 1.0, "badge": "🇮🇳", "provider": "nvidia"},
+    "Minimax m2.7": {"model": "minimaxai/minimax-m2.7", "api_key": os.getenv("NVIDIA_API_KEY_MINIMAX"), "category": "general", "cost": 1.5, "badge": "🌀", "provider": "nvidia"},
+    "Step 3.5 Flash": {"model": "stepfun-ai/step-3.5-flash", "api_key": os.getenv("NVIDIA_API_KEY_STEP_GEMMA"), "category": "general", "cost": 1.0, "badge": "⚡", "provider": "nvidia"},
+    "GPT OSS 20B": {"model": "openai/gpt-oss-20b", "api_key": os.getenv("NVIDIA_API_KEY_STEP_GEMMA"), "category": "general", "cost": 1.2, "badge": "🌐", "provider": "nvidia"},
     "Llama 3.3 70B": {"model": "meta/llama-3.3-70b-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "general", "cost": 1.0, "badge": "🦙", "provider": "nvidia"},
     "Gemini 1.5 Flash (Free)": {"model": "gemini-1.5-flash", "api_key": os.getenv("GEMINI_API_KEY"), "category": "general", "cost": 0.0, "badge": "♊", "provider": "google"}
 }
@@ -78,7 +86,7 @@ DEFAULT_MODELS = {
     "reasoning": "Nemotron 3 Super 120B",
     "image_generation": "Stable Diffusion 3.5 Large",
     "vision": "Llama 4 Maverick",
-    "coding": "Qwen 2.5 Coder",
+    "coding": "Gemini 3 Flash",
     "creative": "Kimi 2.6",
     "general": "Llama 3.3 70B"
 }
@@ -96,15 +104,15 @@ def auto_select_model(text):
     if word_count <= 5 and any(t.startswith(g) or t == g for g in greet_patterns):
         return "Llama 3.3 70B"
 
-    # --- UI / frontend / design -> Qwen 2.5 Coder ---
+    # --- UI / frontend / design -> Gemini 3 Flash ---
     ui_keywords = ["ui", "ux", "design", "html", "css", "tailwind", "frontend", "interface"]
     if any(kw in t for kw in ui_keywords):
-        return "Qwen 2.5 Coder"
+        return "Gemini 3 Flash"
 
     # --- Coding tasks ---
     code_keywords = ["code", "program", "script", "function", "debug", "error", "bug", "python", "javascript", "react", "sql", "api"]
     if any(kw in t for kw in code_keywords):
-        return "Qwen 2.5 Coder"
+        return "Gemini 3 Flash"
 
     # --- Math / logic / deep reasoning -> Nemotron 3 Super 120B ---
     math_keywords = ["prove", "calculate", "integral", "equation", "algebra", "logic", "reasoning", "solve", "step by step"]
@@ -239,36 +247,43 @@ def chat():
     
     uid = session.get('user_id')
     
-    data = request.get_json()
-    text = data.get('message')
-    conv_id = data.get('conversation_id')
-    category = data.get('category', 'general')
-    
-    # Select model
-    selected_model = data.get('model')
-    if selected_model and selected_model in MODEL_CONFIGS:
-        model_label = selected_model
-    elif category == 'auto':
-        model_label = auto_select_model(text)
-    else:
-        model_label = DEFAULT_MODELS.get(category, "Llama 3.3 70B")
-    
-    config = MODEL_CONFIGS[model_label]
-    
-    # Save user message
-    database.save_message(conv_id, 'user', text, category=category)
-    
-    # Auto-rename if this is the first message
-    conn = database.get_db_connection()
-    msg_count = conn.execute('SELECT COUNT(*) FROM messages WHERE conversation_id = ?', (conv_id,)).fetchone()[0]
-    if msg_count == 1:
-        # Title from first 30 chars
-        new_title = (text[:30] + '...') if len(text) > 30 else text
-        database.rename_conversation(conv_id, new_title)
-    conn.close()
-    
-    start_time = time.time()
     try:
+        data = request.get_json()
+        text = data.get('message')
+        conv_id = data.get('conversation_id')
+        category = data.get('category', 'general')
+        
+        # Select model
+        selected_model = data.get('model')
+        if selected_model and selected_model in MODEL_CONFIGS:
+            model_label = selected_model
+        elif category == 'auto':
+            model_label = auto_select_model(text)
+        else:
+            model_label = DEFAULT_MODELS.get(category, "Llama 3.3 70B")
+        
+        if model_label not in MODEL_CONFIGS:
+            return jsonify({'error': f'Model {model_label} not configured'}), 400
+            
+        config = MODEL_CONFIGS[model_label]
+        
+        # Validate API Key
+        if not config.get('api_key'):
+            return jsonify({'error': f'API key for {model_label} is missing. Please check your .env file.'}), 500
+
+        # Save user message
+        database.save_message(conv_id, 'user', text, category=category)
+        
+        # Auto-rename if this is the first message
+        conn = database.get_db_connection()
+        msg_count = conn.execute('SELECT COUNT(*) FROM messages WHERE conversation_id = ?', (conv_id,)).fetchone()[0]
+        if msg_count == 1:
+            # Title from first 30 chars
+            new_title = (text[:30] + '...') if len(text) > 30 else text
+            database.rename_conversation(conv_id, new_title)
+        conn.close()
+        
+        start_time = time.time()
         if config.get('provider') == 'google':
             genai.configure(api_key=config['api_key'])
             model = genai.GenerativeModel(config['model'])
@@ -291,7 +306,25 @@ def chat():
             latency = round(time.time() - start_time, 2)
             tokens_in = 0 
             tokens_out = 0
-            credits_used = 0.0
+            credits_used = config['cost']
+        elif config.get('category') == 'image_generation':
+            client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=config['api_key'])
+            
+            response = client.images.generate(
+                model=config["model"],
+                prompt=text,
+                response_format="b64_json"
+            )
+            
+            # NVIDIA returns base64 in data[0].b64_json
+            image_b64 = response.data[0].b64_json
+            ai_response = f"![Generated Image](data:image/png;base64,{image_b64})"
+            reasoning = "Image generated using " + config["model"]
+            
+            latency = round(time.time() - start_time, 2)
+            tokens_in = 0
+            tokens_out = 0
+            credits_used = config['cost']
         else:
             client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=config['api_key'])
             
