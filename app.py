@@ -375,6 +375,9 @@ def chat():
             
         config = MODEL_CONFIGS[model_label]
         
+        # Get files from request early
+        files = data.get('files', [])
+
         # Calculate dynamic cost
         actual_cost = config['cost']
         if len(clean_text) > 500: # Long answer / detailed answer
@@ -408,7 +411,6 @@ def chat():
             return jsonify({'error': f'API key for {model_label} is missing. Please check your .env file.'}), 500
 
         # Save user message
-        files = data.get('files', [])
         database.save_message(conv_id, 'user', clean_text, category=category, files=files)
         
         # --- File Content Extraction ---

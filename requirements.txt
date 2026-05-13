@@ -6,3 +6,7 @@ gunicorn
 gevent
 eventlet
 werkzeug
+PyPDF2
+python-docx
+pandas
+openpyxl

@@ -5,15 +5,25 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --worker-class gthread --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT app:app
     envVars:
-      - key: DEEPSEEK_PRO_KEY
+      - key: SECRET_KEY
+        generateValue: true
+      - key: NVIDIA_API_KEY_NEMOTRON_3
         sync: false
-      - key: DEEPSEEK_FLASH_KEY
+      - key: NVIDIA_API_KEY_PRO
         sync: false
-      - key: GLM_47_KEY
-        sync: false
-      - key: KIMI_K2_KEY
+      - key: NVIDIA_API_KEY_GLM51
         sync: false
       - key: KIMI_26_KEY
         sync: false
-      - key: MINIMAX_M27_KEY
+      - key: NVIDIA_API_KEY_STOCKMARK
+        sync: false
+      - key: NVIDIA_API_KEY_VISION
+        sync: false
+      - key: NVIDIA_API_KEY_STEP_GEMMA
+        sync: false
+      - key: NVIDIA_API_KEY_KIMI_K26
+        sync: false
+      - key: NVIDIA_API_KEY_SARVAM
+        sync: false
+      - key: NVIDIA_API_KEY_MINIMAX
         sync: false
