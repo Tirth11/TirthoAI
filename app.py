@@ -81,10 +81,18 @@ MODEL_CONFIGS = {
     "Llama 3.3 70B": {"model": "meta/llama-3.3-70b-instruct", "api_key": os.getenv("KIMI_26_KEY"), "category": "general", "cost": 1.0, "badge": "🦙", "provider": "nvidia"}
 }
 
+def get_available_models():
+    """Return only models that have valid API keys configured."""
+    available = {}
+    for label, config in MODEL_CONFIGS.items():
+        if config.get('api_key'):  # Only include if API key exists
+            available[label] = config
+    return available
+
 @app.route('/models')
 def get_models():
     models = []
-    for label, config in MODEL_CONFIGS.items():
+    for label, config in get_available_models().items():
         models.append({
             'label': label,
             'category': config.get('category'),
@@ -105,14 +113,23 @@ DEFAULT_MODELS = {
 def auto_select_model(text):
     """
     Intelligently select the best model based on prompt content.
+    Only picks from models that have valid API keys.
     Returns model_label.
     """
+    available = get_available_models()
+    if not available:
+        return None  # No models available
+    
     t = (text or "").lower().strip()
     word_count = len(t.split()) if t else 0
 
     greet_patterns = ["hi", "hello", "hey", "how are you", "what's up", "whats up", "helo", "hy"]
     if word_count <= 5 and any(t.startswith(g) or t == g for g in greet_patterns):
-        return "Llama 3.3 70B"
+        # Pick a general model if available
+        for label, cfg in available.items():
+            if cfg.get('category') == 'general':
+                return label
+        return next(iter(available))  # Fallback to first available
 
     # Keywords mapping
     mapping = {
@@ -131,11 +148,15 @@ def auto_select_model(text):
     best_category = max(scores, key=scores.get)
     max_score = scores[best_category]
 
-    # Default to general if no match
-    if max_score < 2:
-        return DEFAULT_MODELS.get('general', "Llama 3.3 70B")
+    # Find best available model for the category
+    target_category = best_category if max_score >= 2 else 'general'
     
-    return DEFAULT_MODELS.get(best_category, "Llama 3.3 70B")
+    for label, cfg in available.items():
+        if cfg.get('category') == target_category:
+            return label
+    
+    # Fallback: return first available model
+    return next(iter(available))
 
 def get_current_user():
     # Return real user_id if logged in
@@ -369,11 +390,26 @@ def chat():
         clean_text = cleanup_text(text)
         
         if selected_model and selected_model in MODEL_CONFIGS:
+            # Verify the selected model has an API key
+            if not MODEL_CONFIGS[selected_model].get('api_key'):
+                return jsonify({'error': f'Model {selected_model} is not available (API key missing). Please select another model.'}), 400
             model_label = selected_model
         elif category == 'auto':
             model_label = auto_select_model(clean_text)
         else:
-            model_label = DEFAULT_MODELS.get(category, "Llama 3.3 70B")
+            # Find an available model in the requested category
+            available = get_available_models()
+            model_label = None
+            for label, cfg in available.items():
+                if cfg.get('category') == category:
+                    model_label = label
+                    break
+            if not model_label:
+                # Fallback to any available model
+                model_label = auto_select_model(clean_text)
+        
+        if not model_label:
+            return jsonify({'error': 'No AI models are currently available. Please check API key configuration.'}), 503
         
         if model_label not in MODEL_CONFIGS:
             return jsonify({'error': f'Model {model_label} not configured'}), 400

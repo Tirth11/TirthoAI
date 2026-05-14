@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,30 +24,6 @@
     --primary: #6366f1;
     --primary-hover: #818cf8;
     --primary-glow: rgba(99, 102, 241, 0.3);
-    --bg-main: #0a0f1a;
-    --bg-secondary: #0f172a;
-    --bg-card: #1e293b;
-    --bg-card-hover: #273548;
-    --bg-input: #1e293b;
-    --border: rgba(148, 163, 184, 0.1);
-    --border-active: rgba(99, 102, 241, 0.5);
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --sidebar-width: 280px;
-    --header-height: 60px;
-    --radius: 12px;
-    --radius-sm: 8px;
-    --radius-xs: 6px;
-    --shadow: 0 4px 24px rgba(0,0,0,0.3);
-    --glass: rgba(30, 41, 59, 0.8);
-    --glass-border: rgba(148, 163, 184, 0.08);
-    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-[data-theme="light"] {
     --bg-main: #f8fafc;
     --bg-secondary: #ffffff;
     --bg-card: #ffffff;
@@ -58,9 +34,33 @@
     --text-primary: #1e293b;
     --text-secondary: #475569;
     --text-muted: #94a3b8;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --sidebar-width: 280px;
+    --header-height: 60px;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-xs: 6px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.06);
     --glass: rgba(255, 255, 255, 0.9);
     --glass-border: rgba(0, 0, 0, 0.05);
-    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+[data-theme="dark"] {
+    --bg-main: #111827;
+    --bg-secondary: #1f2937;
+    --bg-card: #1f2937;
+    --bg-card-hover: #374151;
+    --bg-input: #374151;
+    --border: rgba(255, 255, 255, 0.1);
+    --border-active: rgba(99, 102, 241, 0.5);
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
+    --glass: rgba(31, 41, 55, 0.9);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --shadow: 0 4px 24px rgba(0,0,0,0.3);
 }
 html, body { height: 100%; overflow: hidden; }
 body {
@@ -580,31 +580,7 @@ body {
                 <h1 class="welcome-title">Welcome to <span class="gradient-text">TirthoAI</span></h1>
                 <p class="welcome-subtitle">Multi-model AI platform with intelligent routing</p>
                 <div class="category-cards" id="categoryCards">
-                    <div class="category-card" onclick="selectCategory('reasoning')">
-                        <div class="card-icon">🧠</div>
-                        <h3>Reasoning</h3>
-                        <p>Complex analysis & deep thinking</p>
-                    </div>
-                    <div class="category-card" onclick="selectCategory('coding')">
-                        <div class="card-icon">💻</div>
-                        <h3>Coding</h3>
-                        <p>Code generation & debugging</p>
-                    </div>
-                    <div class="category-card" onclick="selectCategory('creative')">
-                        <div class="card-icon">✍️</div>
-                        <h3>Creative</h3>
-                        <p>Writing, stories & content</p>
-                    </div>
-                    <div class="category-card" onclick="selectCategory('vision')">
-                        <div class="card-icon">🖼️</div>
-                        <h3>Vision</h3>
-                        <p>Image analysis & description</p>
-                    </div>
-                    <div class="category-card" onclick="selectCategory('general')">
-                        <div class="card-icon">⚡</div>
-                        <h3>General</h3>
-                        <p>Fast answers for everything</p>
-                    </div>
+                    <!-- Dynamically populated based on available models -->
                 </div>
             </div>
         </div>
@@ -641,15 +617,16 @@ body {
         <button class="modal-close" onclick="closeLoginModal()"><i class="fas fa-times"></i></button>
         <div class="modal-header">
             <div class="modal-logo"><i class="fas fa-brain"></i></div>
-            <h2>Sign in to TirthoAI</h2>
-            <p>Enter your email or phone to continue</p>
+            <h2>Welcome to TirthoAI</h2>
+            <p>Enter your name to get started</p>
         </div>
         <div class="modal-body">
             <div class="input-group">
-                <i class="fas fa-envelope"></i>
-                <input type="text" id="loginInput" placeholder="Email or phone number" onkeydown="if(event.key==='Enter')doLogin()">
+                <i class="fas fa-user"></i>
+                <input type="text" id="loginInput" placeholder="Your name (e.g. Tirth, Alex...)" onkeydown="if(event.key==='Enter')doLogin()">
             </div>
-            <button class="login-submit-btn" onclick="doLogin()">Continue</button>
+            <button class="login-submit-btn" onclick="doLogin()">Start Chatting</button>
+            <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:12px;">No signup required. Just enter any name!</p>
         </div>
     </div>
 </div>
@@ -663,7 +640,7 @@ let state = {
     user: null,
     uploadedFiles: [],
     isLoading: false,
-    theme: localStorage.getItem('tirtho-theme') || 'dark'
+    theme: localStorage.getItem('tirtho-theme') || 'light'
 };
 
 // ===== INITIALIZATION =====
@@ -683,7 +660,7 @@ function toggleTheme() {
 function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     const icon = document.getElementById('themeIcon');
-    icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+    icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 }
 
 // ===== SIDEBAR =====
@@ -761,7 +738,35 @@ async function loadModels() {
         const res = await fetch('/models');
         state.models = await res.json();
         populateModelSelect();
+        renderCategoryCards();
+        onCategoryChange(); // Hide empty categories in dropdown
     } catch(e) { console.error('Failed to load models:', e); }
+}
+
+function renderCategoryCards() {
+    const container = document.getElementById('categoryCards');
+    const allCategories = [
+        { id: 'reasoning', icon: '🧠', name: 'Reasoning', desc: 'Complex analysis & deep thinking' },
+        { id: 'coding', icon: '💻', name: 'Coding', desc: 'Code generation & debugging' },
+        { id: 'creative', icon: '✍️', name: 'Creative', desc: 'Writing, stories & content' },
+        { id: 'vision', icon: '🖼️', name: 'Vision', desc: 'Image analysis & description' },
+        { id: 'general', icon: '⚡', name: 'General', desc: 'Fast answers for everything' }
+    ];
+    // Only show categories that have at least one available model
+    const availableCategories = allCategories.filter(cat => 
+        state.models.some(m => m.category === cat.id)
+    );
+    if (availableCategories.length === 0) {
+        container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-muted);"><i class="fas fa-exclamation-triangle" style="font-size:32px;margin-bottom:12px;display:block;"></i><p>No AI models are currently available.<br>Please configure API keys in the .env file.</p></div>';
+        return;
+    }
+    container.innerHTML = availableCategories.map(cat => `
+        <div class="category-card" onclick="selectCategory('${cat.id}')">
+            <div class="card-icon">${cat.icon}</div>
+            <h3>${cat.name}</h3>
+            <p>${cat.desc}</p>
+        </div>
+    `).join('');
 }
 
 function populateModelSelect() {
@@ -772,6 +777,10 @@ function populateModelSelect() {
     if (category !== 'auto') {
         filtered = state.models.filter(m => m.category === category);
     }
+    if (filtered.length === 0 && category !== 'auto') {
+        select.innerHTML = '<option value="" disabled selected>No models available for this category</option>';
+        return;
+    }
     filtered.forEach(m => {
         const opt = document.createElement('option');
         opt.value = m.label;
@@ -781,10 +790,24 @@ function populateModelSelect() {
     if (category === 'auto') {
         select.insertAdjacentHTML('afterbegin', '<option value="auto" selected>🤖 Auto Route</option>');
     }
+    // Show helpful message if no models at all
+    if (state.models.length === 0) {
+        select.innerHTML = '<option value="" disabled selected>No AI models configured</option>';
+    }
 }
 
 function onCategoryChange() {
     populateModelSelect();
+    // Hide categories in the dropdown that have no available models
+    const categorySelect = document.getElementById('categorySelect');
+    const categories = ['reasoning', 'vision', 'coding', 'creative', 'general'];
+    categories.forEach(cat => {
+        const option = categorySelect.querySelector(`option[value="${cat}"]`);
+        if (option) {
+            const hasModels = state.models.some(m => m.category === cat);
+            option.style.display = hasModels ? '' : 'none';
+        }
+    });
 }
 
 function selectCategory(cat) {
