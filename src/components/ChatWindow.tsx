@@ -7,11 +7,11 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ModelPicker } from "@/components/ModelPicker";
 import { autoSelectModel, getModelById, CATEGORY_META } from "@/lib/models";
-import { ConvStore, deriveTitle, type Conversation } from "@/lib/conversations";
+import { ChatDB, type DBConversation } from "@/lib/chat-db";
 
 interface Props {
-  conversation: Conversation;
-  onUpdate: () => void;
+  conversation: DBConversation;
+  onConversationChange: () => void | Promise<unknown>;
 }
 
 const TEXT_EXTS = [".txt", ".md", ".csv", ".json", ".log", ".html", ".xml", ".yaml", ".yml"];
@@ -25,51 +25,82 @@ async function readTextFile(file: File): Promise<string> {
   });
 }
 
-export function ChatWindow({ conversation, onUpdate }: Props) {
-  const [modelId, setModelId] = useState(conversation.modelId);
+function deriveTitle(text: string): string {
+  const t = text.trim().replace(/\s+/g, " ");
+  if (!t) return "New Chat";
+  return t.length > 40 ? t.slice(0, 40) + "…" : t;
+}
+
+export function ChatWindow({ conversation, onConversationChange }: Props) {
+  const [modelId, setModelId] = useState(conversation.model_id);
   const [autoMode, setAutoMode] = useState(true);
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const persistedIdsRef = useRef<Set<string>>(new Set());
 
-  const transport = useMemo(
-    () => new DefaultChatTransport({ api: "/api/chat" }),
-    []
-  );
+  // Load messages for this conversation
+  useEffect(() => {
+    let alive = true;
+    setInitialMessages(null);
+    persistedIdsRef.current = new Set();
+    ChatDB.listMessages(conversation.id)
+      .then((msgs) => {
+        if (!alive) return;
+        msgs.forEach((m) => persistedIdsRef.current.add(m.id));
+        setInitialMessages(msgs);
+      })
+      .catch((e) => {
+        console.error(e);
+        if (alive) setInitialMessages([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [conversation.id]);
 
-  const { messages, sendMessage, status, setMessages } = useChat({
+  const transport = useMemo(() => new DefaultChatTransport({ api: "/api/chat" }), []);
+
+  const { messages, sendMessage, status } = useChat({
     id: conversation.id,
-    messages: conversation.messages,
+    messages: initialMessages ?? [],
     transport,
     onError: (err) => toast.error(err.message || "Something went wrong"),
   });
 
   const isLoading = status === "submitted" || status === "streaming";
 
-  // Persist messages whenever they change
+  // Persist new messages when streaming finishes
   useEffect(() => {
-    ConvStore.saveMessages(conversation.id, messages);
-    onUpdate();
+    if (status !== "ready") return;
+    (async () => {
+      for (const m of messages) {
+        if (persistedIdsRef.current.has(m.id)) continue;
+        // Only persist messages with non-empty content
+        const hasText = m.parts.some((p) => p.type === "text" && p.text);
+        const hasFile = m.parts.some((p) => p.type === "file");
+        if (!hasText && !hasFile) continue;
+        await ChatDB.insertMessage(conversation.id, m);
+        persistedIdsRef.current.add(m.id);
+      }
+      onConversationChange();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, conversation.id]);
+  }, [status, messages, conversation.id]);
 
-  // Auto-scroll
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, status]);
 
-  // Reset state when switching conversation
   useEffect(() => {
-    setModelId(conversation.modelId);
-    setMessages(conversation.messages);
+    setModelId(conversation.model_id);
     setInput("");
     setAttachments([]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversation.id]);
+  }, [conversation.id, conversation.model_id]);
 
-  // Auto resize textarea
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -90,7 +121,6 @@ export function ChatWindow({ conversation, onUpdate }: Props) {
 
     const hasImage = attachments.some((f) => f.type.startsWith("image/"));
 
-    // Read text files and prepend their content
     let prefix = "";
     const imageFiles: File[] = [];
     for (const f of attachments) {
@@ -110,24 +140,25 @@ export function ChatWindow({ conversation, onUpdate }: Props) {
 
     const finalText = (prefix ? prefix + "\n\n" : "") + raw;
 
-    // Decide which model to use
     let useModelId = modelId;
     if (autoMode) {
       useModelId = autoSelectModel(raw, hasImage);
     } else if (hasImage && !getModelById(modelId)?.supportsVision) {
-      // Force a vision model when an image is present
       useModelId = "google/gemini-2.5-pro";
     }
     setModelId(useModelId);
-    ConvStore.update(conversation.id, { modelId: useModelId });
-
-    // Auto-title on first message
-    if (messages.length === 0) {
-      ConvStore.rename(conversation.id, deriveTitle(raw || "Image chat"));
-      onUpdate();
+    if (useModelId !== conversation.model_id) {
+      ChatDB.updateConversation(conversation.id, { model_id: useModelId }).catch(console.error);
     }
 
-    // Build a FileList from image files for AI SDK to forward
+    if (messages.length === 0) {
+      ChatDB.updateConversation(conversation.id, {
+        title: deriveTitle(raw || "Image chat"),
+      })
+        .then(onConversationChange)
+        .catch(console.error);
+    }
+
     const dt = new DataTransfer();
     imageFiles.forEach((f) => dt.items.add(f));
     const fileList = dt.files.length > 0 ? dt.files : undefined;
@@ -152,9 +183,16 @@ export function ChatWindow({ conversation, onUpdate }: Props) {
     { text: "Ideas for a weekend side project", icon: "🚀" },
   ];
 
+  if (initialMessages === null) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col bg-background">
-      {/* Top bar */}
       <header className="flex items-center justify-between border-b border-border bg-background/80 px-4 py-3 backdrop-blur sm:px-6">
         <div className="flex items-center gap-2 min-w-0">
           <span
@@ -165,23 +203,20 @@ export function ChatWindow({ conversation, onUpdate }: Props) {
           >
             {catMeta.icon} {catMeta.label}
           </span>
-          <h1 className="truncate text-sm font-semibold text-foreground">
-            {conversation.title}
-          </h1>
+          <h1 className="truncate text-sm font-semibold text-foreground">{conversation.title}</h1>
         </div>
         <ModelPicker
           modelId={modelId}
           onChange={(id) => {
             setModelId(id);
             setAutoMode(false);
-            ConvStore.update(conversation.id, { modelId: id });
+            ChatDB.updateConversation(conversation.id, { model_id: id }).catch(console.error);
           }}
           autoMode={autoMode}
           onAutoToggle={setAutoMode}
         />
       </header>
 
-      {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
         <div className="mx-auto max-w-3xl space-y-6">
           {messages.length === 0 && (
@@ -194,8 +229,7 @@ export function ChatWindow({ conversation, onUpdate }: Props) {
               </div>
               <h2 className="text-2xl font-bold tracking-tight">Welcome to TirthoAI</h2>
               <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                Chat with the best AI models for reasoning, coding, vision, and more —
-                automatically picked for your prompt.
+                Chat with the best AI models — your history is saved automatically.
               </p>
               <div className="mt-8 grid w-full max-w-xl grid-cols-1 gap-2 sm:grid-cols-2">
                 {suggestions.map((s) => (
@@ -233,16 +267,12 @@ export function ChatWindow({ conversation, onUpdate }: Props) {
         </div>
       </div>
 
-      {/* Composer */}
       <div className="border-t border-border bg-background/80 px-4 py-4 backdrop-blur sm:px-6">
         <div className="mx-auto max-w-3xl">
           {attachments.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
               {attachments.map((f, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs"
-                >
+                <div key={i} className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs">
                   {f.type.startsWith("image/") ? (
                     <ImageIcon className="h-3.5 w-3.5 text-emerald-500" />
                   ) : (
@@ -314,7 +344,7 @@ export function ChatWindow({ conversation, onUpdate }: Props) {
             </button>
           </form>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
-            Free with Lovable AI • {autoMode ? "Auto-picks the best model" : `Using ${activeModel?.label}`}
+            Saved to your account • {autoMode ? "Auto-picks the best model" : `Using ${activeModel?.label}`}
           </p>
         </div>
       </div>
@@ -324,9 +354,7 @@ export function ChatWindow({ conversation, onUpdate }: Props) {
 
 function MessageBubble({ message }: { message: UIMessage }) {
   const isUser = message.role === "user";
-  const text = message.parts
-    .map((p) => (p.type === "text" ? p.text : ""))
-    .join("");
+  const text = message.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
   const fileParts = message.parts.filter((p) => p.type === "file") as Array<{
     type: "file";
     mediaType?: string;
@@ -347,9 +375,7 @@ function MessageBubble({ message }: { message: UIMessage }) {
       <div
         className={cn(
           "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
-          isUser
-            ? "text-primary-foreground"
-            : "border border-border bg-card text-card-foreground"
+          isUser ? "text-primary-foreground" : "border border-border bg-card text-card-foreground"
         )}
         style={isUser ? { background: "var(--gradient-primary)" } : undefined}
       >
@@ -364,10 +390,7 @@ function MessageBubble({ message }: { message: UIMessage }) {
                   className="max-h-48 rounded-lg border border-border/30"
                 />
               ) : (
-                <div
-                  key={i}
-                  className="rounded-lg bg-background/20 px-2 py-1 text-xs"
-                >
+                <div key={i} className="rounded-lg bg-background/20 px-2 py-1 text-xs">
                   📎 {p.filename ?? "file"}
                 </div>
               )
