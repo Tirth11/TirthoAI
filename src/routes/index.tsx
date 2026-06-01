@@ -125,6 +125,7 @@ function ChatLayout({ userEmail, userId }: { userEmail: string; userId: string }
             onConversationChange={refresh}
             onOpenSidebar={() => setSidebarOpen(true)}
             userEmail={userEmail}
+            userId={userId}
           />
         )}
       </main>
