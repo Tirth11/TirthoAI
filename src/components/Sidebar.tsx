@@ -309,6 +309,26 @@ export function Sidebar({
               <LogOut className="h-3.5 w-3.5" />
             </button>
           </div>
+
+          {/* Credits button — opens history modal */}
+          <button
+            onClick={() => setCreditsOpen(true)}
+            className={cn(
+              "mb-2 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition",
+              credits !== null && credits <= 0
+                ? "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15"
+                : "border-sidebar-border bg-background/40 hover:bg-sidebar-accent/60",
+            )}
+            title="View credits history"
+          >
+            <Zap className="h-3.5 w-3.5" />
+            <span className="flex-1 text-left">Credits</span>
+            <span className="tabular-nums font-semibold">
+              {credits ?? "—"}
+              <span className="text-muted-foreground">/{FREE_CREDITS}</span>
+            </span>
+          </button>
+
           <button
             onClick={toggle}
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-sidebar-border bg-background/40 px-3 py-2 text-xs font-medium hover:bg-sidebar-accent/60"
@@ -321,6 +341,13 @@ export function Sidebar({
           </p>
         </div>
       </aside>
+
+      <CreditsHistoryModal
+        open={creditsOpen}
+        onClose={() => setCreditsOpen(false)}
+        userId={userId}
+        currentCredits={credits}
+      />
     </>
   );
 }
