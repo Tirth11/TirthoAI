@@ -35,12 +35,6 @@ export const MODELS: ModelConfig[] = [
   { label: "Gemini 3 Flash", id: "google/gemini-3-flash-preview", category: "general", badge: "🚀", description: "Fast everyday assistant (default)" },
   { label: "Gemini 3.1 Flash Lite", id: "google/gemini-3.1-flash-lite-preview", category: "general", badge: "🪶", description: "Cost-efficient, high volume" },
   { label: "GPT-5 Nano", id: "openai/gpt-5-nano", category: "general", badge: "⚡", description: "Quick simple tasks" },
-
-  // NVIDIA-hosted open models (DeepSeek, Kimi, GLM, MiniMax via build.nvidia.com)
-  { label: "DeepSeek R1", id: "deepseek-ai/deepseek-r1", category: "reasoning", badge: "🧩", description: "Open reasoning model via NVIDIA NIM", provider: "nvidia" },
-  { label: "Kimi K2", id: "moonshotai/kimi-k2-instruct", category: "general", badge: "🌙", description: "Moonshot AI Kimi via NVIDIA NIM", provider: "nvidia" },
-  { label: "GLM 4.6", id: "zai-org/glm-4.6", category: "coding", badge: "🔷", description: "Zhipu GLM via NVIDIA NIM", provider: "nvidia" },
-  { label: "MiniMax M1", id: "minimaxai/minimax-m1-80k", category: "creative", badge: "🎯", description: "MiniMax via NVIDIA NIM", provider: "nvidia" },
 ];
 
 export const CATEGORY_META: Record<ModelCategory, { label: string; icon: string; color: string }> = {
