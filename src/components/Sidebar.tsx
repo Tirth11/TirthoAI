@@ -1,19 +1,30 @@
-import { Plus, MessageSquare, Trash2, Pencil, Moon, Sun, Sparkles, Github } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Pencil, Moon, Sun, Sparkles, LogOut } from "lucide-react";
 import { useState } from "react";
-import { type Conversation } from "@/lib/conversations";
+import { type DBConversation } from "@/lib/chat-db";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
 
 interface Props {
-  conversations: Conversation[];
+  conversations: DBConversation[];
   activeId: string | null;
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
   onRename: (id: string, title: string) => void;
+  userEmail: string;
+  onSignOut: () => void;
 }
 
-export function Sidebar({ conversations, activeId, onSelect, onNew, onDelete, onRename }: Props) {
+export function Sidebar({
+  conversations,
+  activeId,
+  onSelect,
+  onNew,
+  onDelete,
+  onRename,
+  userEmail,
+  onSignOut,
+}: Props) {
   const { theme, toggle } = useTheme();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -125,24 +136,30 @@ export function Sidebar({ conversations, activeId, onSelect, onNew, onDelete, on
 
       {/* Footer */}
       <div className="border-t border-sidebar-border px-3 py-3">
-        <div className="flex items-center gap-2">
+        <div className="mb-2 flex items-center gap-2 rounded-lg bg-background/40 px-2.5 py-2">
+          <div
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+            style={{ background: "var(--gradient-primary)" }}
+          >
+            {userEmail.slice(0, 1).toUpperCase()}
+          </div>
+          <span className="flex-1 truncate text-xs">{userEmail}</span>
           <button
-            onClick={toggle}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-sidebar-border bg-background/40 px-3 py-2 text-xs font-medium hover:bg-sidebar-accent/60"
+            onClick={onSignOut}
+            className="rounded p-1 text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
+            aria-label="Sign out"
+            title="Sign out"
           >
-            {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-            {theme === "dark" ? "Light" : "Dark"}
+            <LogOut className="h-3.5 w-3.5" />
           </button>
-          <a
-            href="https://docs.lovable.dev"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center justify-center rounded-lg border border-sidebar-border bg-background/40 p-2 hover:bg-sidebar-accent/60"
-            aria-label="Docs"
-          >
-            <Github className="h-3.5 w-3.5" />
-          </a>
         </div>
+        <button
+          onClick={toggle}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-sidebar-border bg-background/40 px-3 py-2 text-xs font-medium hover:bg-sidebar-accent/60"
+        >
+          {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+          {theme === "dark" ? "Light mode" : "Dark mode"}
+        </button>
         <p className="mt-2 text-center text-[10px] text-muted-foreground">
           Powered by Lovable AI
         </p>
