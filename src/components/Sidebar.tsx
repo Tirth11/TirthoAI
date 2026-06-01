@@ -10,11 +10,14 @@ import {
   Search,
   X,
   Check,
+  Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { type DBConversation } from "@/lib/chat-db";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
+import { useCredits, FREE_CREDITS } from "@/hooks/use-credits";
+import { CreditsHistoryModal } from "@/components/CreditsHistoryModal";
 
 interface Props {
   conversations: DBConversation[];
@@ -24,6 +27,7 @@ interface Props {
   onDelete: (id: string) => void;
   onRename: (id: string, title: string) => void;
   userEmail: string;
+  userId: string;
   onSignOut: () => void;
   /** Mobile drawer open state — ignored on desktop. */
   isOpen: boolean;
