@@ -58,10 +58,10 @@ export const ChatDB = {
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true });
     if (error) throw error;
-    return (data ?? []).map((m: DBMessage) => ({
+    return (data ?? []).map((m) => ({
       id: m.id,
-      role: m.role,
-      parts: (m.parts as UIMessage["parts"]) ?? [],
+      role: m.role as UIMessage["role"],
+      parts: (m.parts as unknown as UIMessage["parts"]) ?? [],
     })) as UIMessage[];
   },
 
