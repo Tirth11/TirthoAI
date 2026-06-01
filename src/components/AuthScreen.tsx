@@ -1,18 +1,30 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
-import { Sparkles, Loader2, Mail, Lock } from "lucide-react";
+import { Sparkles, Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 export function AuthScreen() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  const validate = (): boolean => {
+    const next: typeof errors = {};
+    if (!email) next.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = "Enter a valid email";
+    if (!password) next.password = "Password is required";
+    else if (password.length < 6) next.password = "At least 6 characters";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!validate()) return;
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -26,10 +38,29 @@ export function AuthScreen() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        toast.success("Welcome back!");
+        toast.success(`Welcome back!`);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Authentication failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setErrors((p) => ({ ...p, email: "Enter your email above first" }));
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/`,
+      });
+      if (error) throw error;
+      toast.success("Check your email for the reset link.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send reset email");
     } finally {
       setLoading(false);
     }
@@ -50,7 +81,7 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center">
           <div
@@ -60,7 +91,10 @@ export function AuthScreen() {
             <Sparkles className="h-7 w-7" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">TirthoAI</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">
+            Your multi-model AI workspace
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground">
             {mode === "signin" ? "Welcome back" : "Create your account"}
           </p>
         </div>
@@ -81,32 +115,74 @@ export function AuthScreen() {
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <form onSubmit={handleEmail} className="space-y-3">
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
-                className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
+          <form onSubmit={handleEmail} className="space-y-3" noValidate>
+            <div>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email) setErrors((p) => ({ ...p, email: undefined }));
+                  }}
+                  placeholder="you@example.com"
+                  required
+                  autoComplete="email"
+                  aria-invalid={!!errors.email}
+                  className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 aria-invalid:border-destructive"
+                />
+              </div>
+              {errors.email && (
+                <p className="mt-1 text-[11px] text-destructive">{errors.email}</p>
+              )}
             </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                required
-                minLength={6}
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
+
+            <div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password) setErrors((p) => ({ ...p, password: undefined }));
+                  }}
+                  placeholder="Password"
+                  required
+                  minLength={6}
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  aria-invalid={!!errors.password}
+                  className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-10 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 aria-invalid:border-destructive"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="mt-1 text-[11px] text-destructive">{errors.password}</p>
+              )}
             </div>
+
+            {mode === "signin" && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                  className="text-[11px] font-medium text-primary hover:underline disabled:opacity-60"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
@@ -122,7 +198,10 @@ export function AuthScreen() {
             {mode === "signin" ? "New here? " : "Already have an account? "}
             <button
               type="button"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+              onClick={() => {
+                setMode(mode === "signin" ? "signup" : "signin");
+                setErrors({});
+              }}
               className="font-semibold text-primary hover:underline"
             >
               {mode === "signin" ? "Create an account" : "Sign in"}
