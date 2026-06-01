@@ -2,7 +2,19 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Send, Sparkles, Loader2, Paperclip, X, Image as ImageIcon, FileText } from "lucide-react";
+import {
+  Send,
+  Sparkles,
+  Loader2,
+  Paperclip,
+  X,
+  Image as ImageIcon,
+  FileText,
+  Menu,
+  Copy,
+  Check,
+  Square,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ModelPicker } from "@/components/ModelPicker";
@@ -12,6 +24,8 @@ import { ChatDB, type DBConversation } from "@/lib/chat-db";
 interface Props {
   conversation: DBConversation;
   onConversationChange: () => void | Promise<unknown>;
+  onOpenSidebar: () => void;
+  userEmail: string;
 }
 
 const TEXT_EXTS = [".txt", ".md", ".csv", ".json", ".log", ".html", ".xml", ".yaml", ".yml"];
@@ -31,7 +45,19 @@ function deriveTitle(text: string): string {
   return t.length > 40 ? t.slice(0, 40) + "…" : t;
 }
 
-export function ChatWindow({ conversation, onConversationChange }: Props) {
+function firstName(email: string): string {
+  const local = email.split("@")[0] ?? "";
+  if (!local) return "there";
+  const cleaned = local.replace(/[._-].*/, "");
+  return cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : "there";
+}
+
+export function ChatWindow({
+  conversation,
+  onConversationChange,
+  onOpenSidebar,
+  userEmail,
+}: Props) {
   const [modelId, setModelId] = useState(conversation.model_id);
   const [autoMode, setAutoMode] = useState(true);
   const [input, setInput] = useState("");
@@ -41,6 +67,7 @@ export function ChatWindow({ conversation, onConversationChange }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const persistedIdsRef = useRef<Set<string>>(new Set());
+  const stickToBottomRef = useRef(true);
 
   // Load messages for this conversation
   useEffect(() => {
@@ -64,7 +91,7 @@ export function ChatWindow({ conversation, onConversationChange }: Props) {
 
   const transport = useMemo(() => new DefaultChatTransport({ api: "/api/chat" }), []);
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, stop } = useChat({
     id: conversation.id,
     messages: initialMessages ?? [],
     transport,
@@ -79,7 +106,6 @@ export function ChatWindow({ conversation, onConversationChange }: Props) {
     (async () => {
       for (const m of messages) {
         if (persistedIdsRef.current.has(m.id)) continue;
-        // Only persist messages with non-empty content
         const hasText = m.parts.some((p) => p.type === "text" && p.text);
         const hasFile = m.parts.some((p) => p.type === "file");
         if (!hasText && !hasFile) continue;
@@ -91,14 +117,31 @@ export function ChatWindow({ conversation, onConversationChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, messages, conversation.id]);
 
+  // Track whether the user is near the bottom (so we only auto-scroll then)
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+      stickToBottomRef.current = distance < 120;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Smart auto-scroll: only follow if user hasn't scrolled away.
+  useEffect(() => {
+    if (!stickToBottomRef.current) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, status]);
 
   useEffect(() => {
     setModelId(conversation.model_id);
     setInput("");
     setAttachments([]);
+    stickToBottomRef.current = true;
   }, [conversation.id, conversation.model_id]);
 
   useEffect(() => {
@@ -165,22 +208,20 @@ export function ChatWindow({ conversation, onConversationChange }: Props) {
 
     setInput("");
     setAttachments([]);
+    stickToBottomRef.current = true;
 
-    await sendMessage(
-      { text: finalText, files: fileList },
-      { body: { modelId: useModelId } }
-    );
+    await sendMessage({ text: finalText, files: fileList }, { body: { modelId: useModelId } });
   };
 
   const activeModel = getModelById(modelId);
   const cat = activeModel?.category ?? "general";
   const catMeta = CATEGORY_META[cat];
 
-  const suggestions = [
-    { text: "Explain transformers like I'm 12", icon: "🧠" },
-    { text: "Write a React debounce hook with tests", icon: "💻" },
-    { text: "A haiku about rainy Mumbai", icon: "✍️" },
-    { text: "Ideas for a weekend side project", icon: "🚀" },
+  const suggestions: Array<{ text: string; icon: string; hint: string }> = [
+    { text: "Explain transformers like I'm 12", icon: "🧠", hint: "Reasoning" },
+    { text: "Write a React debounce hook with tests", icon: "💻", hint: "Coding" },
+    { text: "A haiku about rainy Mumbai", icon: "✍️", hint: "Creative" },
+    { text: "Ideas for a weekend side project", icon: "🚀", hint: "Brainstorm" },
   ];
 
   if (initialMessages === null) {
@@ -191,19 +232,31 @@ export function ChatWindow({ conversation, onConversationChange }: Props) {
     );
   }
 
+  const greetName = firstName(userEmail);
+
   return (
     <div className="flex h-full flex-col bg-background">
-      <header className="flex items-center justify-between border-b border-border bg-background/80 px-4 py-3 backdrop-blur sm:px-6">
+      <header className="flex items-center justify-between gap-2 border-b border-border bg-background/80 px-3 py-3 backdrop-blur sm:px-6">
         <div className="flex items-center gap-2 min-w-0">
+          <button
+            onClick={onOpenSidebar}
+            className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground md:hidden"
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-full bg-gradient-to-r px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white",
+              "hidden sm:inline-flex items-center gap-1 rounded-full bg-gradient-to-r px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white",
               catMeta.color
             )}
+            title={`${catMeta.label} model active`}
           >
             {catMeta.icon} {catMeta.label}
           </span>
-          <h1 className="truncate text-sm font-semibold text-foreground">{conversation.title}</h1>
+          <h1 className="truncate text-sm font-semibold text-foreground">
+            {conversation.title}
+          </h1>
         </div>
         <ModelPicker
           modelId={modelId}
@@ -223,13 +276,19 @@ export function ChatWindow({ conversation, onConversationChange }: Props) {
             <div className="flex flex-col items-center justify-center pt-8 pb-4 text-center">
               <div
                 className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-xl"
-                style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow)" }}
+                style={{
+                  background: "var(--gradient-primary)",
+                  boxShadow: "var(--shadow-glow)",
+                }}
               >
                 <Sparkles className="h-8 w-8" />
               </div>
-              <h2 className="text-2xl font-bold tracking-tight">Welcome to TirthoAI</h2>
+              <h2 className="text-2xl font-bold tracking-tight">
+                Hey {greetName} 👋
+              </h2>
               <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                Chat with the best AI models — your history is saved automatically.
+                Ask anything — I'll pick the best model for the job automatically. Your history is
+                saved.
               </p>
               <div className="mt-8 grid w-full max-w-xl grid-cols-1 gap-2 sm:grid-cols-2">
                 {suggestions.map((s) => (
@@ -239,8 +298,13 @@ export function ChatWindow({ conversation, onConversationChange }: Props) {
                     onClick={() => submit(s.text)}
                     className="group flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left text-sm transition hover:border-primary/50 hover:shadow-md"
                   >
-                    <span className="text-lg">{s.icon}</span>
-                    <span className="text-foreground group-hover:text-primary">{s.text}</span>
+                    <span className="text-lg leading-none pt-0.5">{s.icon}</span>
+                    <div className="flex-1">
+                      <div className="text-foreground group-hover:text-primary">{s.text}</div>
+                      <div className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {s.hint}
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -260,10 +324,19 @@ export function ChatWindow({ conversation, onConversationChange }: Props) {
                 <Sparkles className="h-4 w-4" />
               </div>
               <div className="rounded-2xl border border-border bg-card px-4 py-3">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <div className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
+                </div>
               </div>
             </div>
           )}
+
+          {/* Screen-reader announcement of live streaming */}
+          <div className="sr-only" aria-live="polite">
+            {status === "streaming" ? "Assistant is responding…" : ""}
+          </div>
         </div>
       </div>
 
@@ -272,21 +345,11 @@ export function ChatWindow({ conversation, onConversationChange }: Props) {
           {attachments.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
               {attachments.map((f, i) => (
-                <div key={i} className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs">
-                  {f.type.startsWith("image/") ? (
-                    <ImageIcon className="h-3.5 w-3.5 text-emerald-500" />
-                  ) : (
-                    <FileText className="h-3.5 w-3.5 text-primary" />
-                  )}
-                  <span className="max-w-[180px] truncate">{f.name}</span>
-                  <button
-                    onClick={() => setAttachments((p) => p.filter((_, j) => j !== i))}
-                    className="rounded p-0.5 hover:bg-accent"
-                    aria-label="Remove"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
+                <AttachmentChip
+                  key={i}
+                  file={f}
+                  onRemove={() => setAttachments((p) => p.filter((_, j) => j !== i))}
+                />
               ))}
             </div>
           )}
@@ -323,31 +386,92 @@ export function ChatWindow({ conversation, onConversationChange }: Props) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  submit();
+                  return;
+                }
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   submit();
                 }
               }}
-              placeholder="Message TirthoAI… (Shift+Enter for newline)"
+              placeholder={`Message TirthoAI… (Shift+Enter for newline)`}
               rows={1}
               className="flex-1 resize-none bg-transparent px-1 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
               disabled={isLoading}
             />
-            <button
-              type="submit"
-              disabled={isLoading || (!input.trim() && attachments.length === 0)}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-primary-foreground shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ background: "var(--gradient-primary)" }}
-              aria-label="Send"
-            >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </button>
+            {isLoading ? (
+              <button
+                type="button"
+                onClick={() => stop()}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-destructive text-destructive-foreground shadow-md transition hover:opacity-90"
+                aria-label="Stop generating"
+                title="Stop generating"
+              >
+                <Square className="h-3.5 w-3.5 fill-current" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!input.trim() && attachments.length === 0}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-primary-foreground shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ background: "var(--gradient-primary)" }}
+                aria-label="Send"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            )}
           </form>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
-            Saved to your account • {autoMode ? "Auto-picks the best model" : `Using ${activeModel?.label}`}
+            <kbd className="rounded border border-border bg-background px-1 py-0.5 font-mono text-[10px]">
+              Enter
+            </kbd>{" "}
+            to send ·{" "}
+            <kbd className="rounded border border-border bg-background px-1 py-0.5 font-mono text-[10px]">
+              Shift+Enter
+            </kbd>{" "}
+            newline ·{" "}
+            {autoMode ? "Auto-picks the best model" : `Using ${activeModel?.label ?? "model"}`}
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function AttachmentChip({ file, onRemove }: { file: File; onRemove: () => void }) {
+  const [thumb, setThumb] = useState<string | null>(null);
+  const isImage = file.type.startsWith("image/");
+
+  useEffect(() => {
+    if (!isImage) return;
+    const url = URL.createObjectURL(file);
+    setThumb(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file, isImage]);
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-2 py-1.5 text-xs">
+      {isImage && thumb ? (
+        <img
+          src={thumb}
+          alt={file.name}
+          className="h-6 w-6 rounded object-cover"
+        />
+      ) : isImage ? (
+        <ImageIcon className="h-3.5 w-3.5 text-emerald-500" />
+      ) : (
+        <FileText className="h-3.5 w-3.5 text-primary" />
+      )}
+      <span className="max-w-[180px] truncate">{file.name}</span>
+      <button
+        onClick={onRemove}
+        className="rounded p-0.5 hover:bg-accent"
+        aria-label={`Remove ${file.name}`}
+      >
+        <X className="h-3 w-3" />
+      </button>
     </div>
   );
 }
@@ -361,9 +485,20 @@ function MessageBubble({ message }: { message: UIMessage }) {
     url?: string;
     filename?: string;
   }>;
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Copy failed");
+    }
+  };
 
   return (
-    <div className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}>
+    <div className={cn("group flex gap-3", isUser ? "justify-end" : "justify-start")}>
       {!isUser && (
         <div
           className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white shadow-md"
@@ -372,37 +507,58 @@ function MessageBubble({ message }: { message: UIMessage }) {
           <Sparkles className="h-4 w-4" />
         </div>
       )}
-      <div
-        className={cn(
-          "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
-          isUser ? "text-primary-foreground" : "border border-border bg-card text-card-foreground"
-        )}
-        style={isUser ? { background: "var(--gradient-primary)" } : undefined}
-      >
-        {fileParts.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-2">
-            {fileParts.map((p, i) =>
-              p.mediaType?.startsWith("image/") && p.url ? (
-                <img
-                  key={i}
-                  src={p.url}
-                  alt={p.filename ?? "attachment"}
-                  className="max-h-48 rounded-lg border border-border/30"
-                />
-              ) : (
-                <div key={i} className="rounded-lg bg-background/20 px-2 py-1 text-xs">
-                  📎 {p.filename ?? "file"}
-                </div>
-              )
+      <div className="flex max-w-[85%] flex-col">
+        <div
+          className={cn(
+            "rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
+            isUser
+              ? "text-primary-foreground"
+              : "border border-border bg-card text-card-foreground"
+          )}
+          style={isUser ? { background: "var(--gradient-primary)" } : undefined}
+        >
+          {fileParts.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {fileParts.map((p, i) =>
+                p.mediaType?.startsWith("image/") && p.url ? (
+                  <img
+                    key={i}
+                    src={p.url}
+                    alt={p.filename ?? "attachment"}
+                    className="max-h-48 rounded-lg border border-border/30"
+                  />
+                ) : (
+                  <div key={i} className="rounded-lg bg-background/20 px-2 py-1 text-xs">
+                    📎 {p.filename ?? "file"}
+                  </div>
+                )
+              )}
+            </div>
+          )}
+          {isUser ? (
+            <p className="whitespace-pre-wrap">{text}</p>
+          ) : (
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-pre:bg-muted prose-pre:text-foreground prose-code:before:content-none prose-code:after:content-none prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5">
+              <ReactMarkdown>{text || "…"}</ReactMarkdown>
+            </div>
+          )}
+        </div>
+        {!isUser && text && (
+          <button
+            onClick={copy}
+            className="mt-1 inline-flex w-fit items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground opacity-0 transition hover:bg-accent hover:text-foreground group-hover:opacity-100"
+            aria-label="Copy message"
+          >
+            {copied ? (
+              <>
+                <Check className="h-3 w-3" /> Copied
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3" /> Copy
+              </>
             )}
-          </div>
-        )}
-        {isUser ? (
-          <p className="whitespace-pre-wrap">{text}</p>
-        ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none prose-pre:bg-muted prose-pre:text-foreground prose-code:before:content-none prose-code:after:content-none prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5">
-            <ReactMarkdown>{text || "…"}</ReactMarkdown>
-          </div>
+          </button>
         )}
       </div>
     </div>
