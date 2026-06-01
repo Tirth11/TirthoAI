@@ -1,4 +1,4 @@
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
+import { createLovableAiGatewayProvider, createNvidiaProvider } from "@/lib/ai-gateway.server";
 import { DEFAULT_MODEL, getModelById } from "@/lib/models";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createFileRoute } from "@tanstack/react-router";
@@ -55,10 +55,23 @@ export const Route = createFileRoute("/api/chat")({
         }
 
         const requestedId = typeof modelId === "string" ? modelId : DEFAULT_MODEL;
-        const chosen = getModelById(requestedId)?.id ?? DEFAULT_MODEL;
+        const chosenConfig = getModelById(requestedId);
+        const chosen = chosenConfig?.id ?? DEFAULT_MODEL;
+        const provider = chosenConfig?.provider ?? "lovable";
 
-        const gateway = createLovableAiGatewayProvider(key);
-        const model = gateway(chosen);
+        let model;
+        if (provider === "nvidia") {
+          const nvKey = process.env.NVIDIA_API_KEY;
+          if (!nvKey) {
+            return new Response(
+              JSON.stringify({ error: "missing_nvidia_key", message: "NVIDIA_API_KEY is not configured." }),
+              { status: 500, headers: { "Content-Type": "application/json" } },
+            );
+          }
+          model = createNvidiaProvider(nvKey)(chosen);
+        } else {
+          model = createLovableAiGatewayProvider(key)(chosen);
+        }
 
         try {
           const result = streamText({
