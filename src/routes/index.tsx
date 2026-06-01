@@ -113,6 +113,7 @@ function ChatLayout({ userEmail, userId }: { userEmail: string; userId: string }
         onDelete={handleDelete}
         onRename={handleRename}
         userEmail={userEmail}
+        userId={userId}
         onSignOut={handleSignOut}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

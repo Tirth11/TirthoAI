@@ -2,6 +2,8 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, Loader2, Mail, Lock, Eye, EyeOff, Gift } from "lucide-react";
 import { toast } from "sonner";
+import { setRemember } from "@/lib/remember-me";
+import { ForgotPasswordModal } from "@/components/ForgotPasswordModal";
 
 export function AuthScreen() {
   const [mode, setMode] = useState<"signin" | "signup">("signup");
@@ -9,6 +11,8 @@ export function AuthScreen() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRememberState] = useState(true);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{
     email?: string;
@@ -35,6 +39,10 @@ export function AuthScreen() {
     if (!validate()) return;
     setLoading(true);
     try {
+      // Persist remember-me preference BEFORE the auth call so the boot guard
+      // doesn't immediately sign the user out on next page load.
+      setRemember(remember);
+
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email,
@@ -42,7 +50,6 @@ export function AuthScreen() {
           options: { emailRedirectTo: `${window.location.origin}/` },
         });
         if (error) throw error;
-        // Auto-confirm is on, so sign in straight away if no session was created.
         const { data: sess } = await supabase.auth.getSession();
         if (!sess.session) {
           const { error: signInErr } = await supabase.auth.signInWithPassword({
@@ -169,6 +176,27 @@ export function AuthScreen() {
               </div>
             )}
 
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex cursor-pointer items-center gap-2 text-[12px] text-muted-foreground select-none">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRememberState(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary/30"
+                />
+                Remember me
+              </label>
+              {mode === "signin" && (
+                <button
+                  type="button"
+                  onClick={() => setForgotOpen(true)}
+                  className="text-[12px] font-medium text-primary hover:underline"
+                >
+                  Forgot password?
+                </button>
+              )}
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -199,6 +227,12 @@ export function AuthScreen() {
           Free forever up to 500 messages · No credit card required
         </p>
       </div>
+
+      <ForgotPasswordModal
+        open={forgotOpen}
+        initialEmail={email}
+        onClose={() => setForgotOpen(false)}
+      />
     </div>
   );
 }

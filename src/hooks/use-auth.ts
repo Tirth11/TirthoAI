@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { enforceRememberMe } from "@/lib/remember-me";
 
 export function useAuthSession() {
   const [session, setSession] = useState<Session | null>(null);
@@ -15,12 +16,14 @@ export function useAuthSession() {
       setSession(s);
       setUser(s?.user ?? null);
     });
-    // THEN fetch existing session
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setLoading(false);
+    // Enforce remember-me, THEN fetch existing session
+    enforceRememberMe().then(() => {
+      supabase.auth.getSession().then(({ data }) => {
+        if (!mounted) return;
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+        setLoading(false);
+      });
     });
     return () => {
       mounted = false;

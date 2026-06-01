@@ -1,12 +1,16 @@
 export type ModelCategory = "reasoning" | "coding" | "creative" | "vision" | "general";
 
+export type ModelProvider = "lovable" | "nvidia";
+
 export interface ModelConfig {
   label: string;
-  id: string; // Lovable AI Gateway model id
+  id: string; // gateway model id
   category: ModelCategory;
   badge: string;
   description: string;
   supportsVision?: boolean;
+  /** Which gateway to route to. Defaults to "lovable". */
+  provider?: ModelProvider;
 }
 
 export const MODELS: ModelConfig[] = [
