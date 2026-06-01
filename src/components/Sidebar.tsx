@@ -62,15 +62,18 @@ export function Sidebar({
   onDelete,
   onRename,
   userEmail,
+  userId,
   onSignOut,
   isOpen,
   onClose,
 }: Props) {
   const { theme, toggle } = useTheme();
+  const { credits } = useCredits(userId);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [creditsOpen, setCreditsOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
