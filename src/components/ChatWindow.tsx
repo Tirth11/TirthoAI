@@ -195,6 +195,10 @@ export function ChatWindow({
     const raw = (textOverride ?? input).trim();
     if (!raw && attachments.length === 0) return;
     if (isLoading) return;
+    if (outOfCredits) {
+      toast.error("You're out of free credits. Free tier is exhausted.");
+      return;
+    }
 
     const hasImage = attachments.some((f) => f.type.startsWith("image/"));
 
