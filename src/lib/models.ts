@@ -35,7 +35,15 @@ export const MODELS: ModelConfig[] = [
   { label: "Gemini 3 Flash", id: "google/gemini-3-flash-preview", category: "general", badge: "🚀", description: "Fast everyday assistant (default)" },
   { label: "Gemini 3.1 Flash Lite", id: "google/gemini-3.1-flash-lite-preview", category: "general", badge: "🪶", description: "Cost-efficient, high volume" },
   { label: "GPT-5 Nano", id: "openai/gpt-5-nano", category: "general", badge: "⚡", description: "Quick simple tasks" },
-];
+
+  // NVIDIA-hosted (free tier via NVIDIA Build)
+  { label: "GLM 5.1", id: "z-ai/glm-5.1", provider: "nvidia", category: "reasoning", badge: "🐉", description: "Zhipu GLM 5.1 via NVIDIA" },
+  { label: "GLM 4.6", id: "z-ai/glm-4.6", provider: "nvidia", category: "general", badge: "🐲", description: "Zhipu GLM 4.6 via NVIDIA" },
+  { label: "DeepSeek V4 Flash", id: "deepseek-ai/deepseek-v4-flash", provider: "nvidia", category: "reasoning", badge: "🌊", description: "DeepSeek thinking model via NVIDIA" },
+  { label: "DeepSeek R1", id: "deepseek-ai/deepseek-r1", provider: "nvidia", category: "reasoning", badge: "🔮", description: "DeepSeek R1 reasoning via NVIDIA" },
+  { label: "Kimi K2", id: "moonshotai/kimi-k2-instruct", provider: "nvidia", category: "creative", badge: "🌙", description: "Moonshot Kimi K2 via NVIDIA" },
+  { label: "Llama 3.3 70B", id: "meta/llama-3.3-70b-instruct", provider: "nvidia", category: "general", badge: "🦙", description: "Meta Llama 3.3 70B via NVIDIA" },
+  { label: "Qwen 2.5 Coder 32B", id: "qwen/qwen2.5-coder-32b-instruct", provider: "nvidia", category: "coding", badge: "🧩", description: "Qwen Coder via NVIDIA" },
 
 export const CATEGORY_META: Record<ModelCategory, { label: string; icon: string; color: string }> = {
   reasoning: { label: "Reasoning", icon: "🧠", color: "from-violet-500 to-fuchsia-500" },
