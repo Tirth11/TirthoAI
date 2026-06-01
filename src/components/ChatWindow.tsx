@@ -61,7 +61,10 @@ export function ChatWindow({
   onConversationChange,
   onOpenSidebar,
   userEmail,
+  userId,
 }: Props) {
+  const { credits, refresh: refreshCredits } = useCredits(userId);
+  const outOfCredits = credits !== null && credits <= 0;
   const [modelId, setModelId] = useState(conversation.model_id);
   const [autoMode, setAutoMode] = useState(true);
   const [input, setInput] = useState("");
