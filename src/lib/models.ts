@@ -44,6 +44,8 @@ export const MODELS: ModelConfig[] = [
   { label: "Kimi K2", id: "moonshotai/kimi-k2-instruct", provider: "nvidia", category: "creative", badge: "🌙", description: "Moonshot Kimi K2 via NVIDIA" },
   { label: "Llama 3.3 70B", id: "meta/llama-3.3-70b-instruct", provider: "nvidia", category: "general", badge: "🦙", description: "Meta Llama 3.3 70B via NVIDIA" },
   { label: "Qwen 2.5 Coder 32B", id: "qwen/qwen2.5-coder-32b-instruct", provider: "nvidia", category: "coding", badge: "🧩", description: "Qwen Coder via NVIDIA" },
+];
+
 
 export const CATEGORY_META: Record<ModelCategory, { label: string; icon: string; color: string }> = {
   reasoning: { label: "Reasoning", icon: "🧠", color: "from-violet-500 to-fuchsia-500" },
