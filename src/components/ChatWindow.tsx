@@ -480,7 +480,7 @@ export function ChatWindow({
             ) : (
               <button
                 type="submit"
-                disabled={!input.trim() && attachments.length === 0}
+                disabled={(!input.trim() && attachments.length === 0) || outOfCredits}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-primary-foreground shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ background: "var(--gradient-primary)" }}
                 aria-label="Send"
