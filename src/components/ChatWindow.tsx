@@ -221,6 +221,41 @@ export function ChatWindow({
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, status]);
 
+  // Mobile keyboard handling: track visualViewport so the input stays above
+  // the on-screen keyboard, and keep the latest message in view when it opens.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      // bottom inset = how much of the layout viewport is hidden by the keyboard
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty("--kb-inset", `${inset}px`);
+      if (stickToBottomRef.current) {
+        const el = scrollRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+      }
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      document.documentElement.style.setProperty("--kb-inset", "0px");
+    };
+  }, []);
+
+  // When the textarea gains focus on mobile, force-scroll to the bottom so
+  // the latest message remains visible above the keyboard.
+  const handleInputFocus = () => {
+    stickToBottomRef.current = true;
+    requestAnimationFrame(() => {
+      const el = scrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    });
+  };
+
   useEffect(() => {
     setModelId(conversation.model_id);
     setInput("");
