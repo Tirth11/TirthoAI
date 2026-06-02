@@ -94,6 +94,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "TirthoAI — Multi-Model AI Workspace" },
+      { name: "description", content: "TirthoAI is a web application for AI-powered chat and content generation." },
+      { property: "og:description", content: "TirthoAI is a web application for AI-powered chat and content generation." },
+      { name: "twitter:description", content: "TirthoAI is a web application for AI-powered chat and content generation." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/45981033-c11d-47e7-aefb-dfb03e23ab90/id-preview-3463b46e--17f08b44-78f6-4ac6-bd41-1d44cfc22315.lovable.app-1780419435987.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/45981033-c11d-47e7-aefb-dfb03e23ab90/id-preview-3463b46e--17f08b44-78f6-4ac6-bd41-1d44cfc22315.lovable.app-1780419435987.png" },
     ],
     links: [
       {
