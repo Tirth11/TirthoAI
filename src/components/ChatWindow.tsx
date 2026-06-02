@@ -22,6 +22,7 @@ import { ModelPicker } from "@/components/ModelPicker";
 import { autoSelectModel, getModelById, CATEGORY_META } from "@/lib/models";
 import { ChatDB, type DBConversation } from "@/lib/chat-db";
 import { ModelCache } from "@/lib/model-cache";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useCredits, FREE_CREDITS } from "@/hooks/use-credits";
 import {
@@ -111,6 +112,7 @@ export function ChatWindow({
   const [modelUpdatedAt, setModelUpdatedAt] = useState<string>(
     cached?.updatedAt ?? conversation.model_updated_at ?? conversation.updated_at,
   );
+  const [previousModelId, setPreviousModelId] = useState<string | undefined>(cached?.previousModelId);
   const [autoMode, setAutoMode] = useState(true);
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -279,6 +281,7 @@ export function ChatWindow({
     const c = ModelCache.get(conversation.id);
     setModelId(c?.modelId ?? conversation.model_id);
     setModelUpdatedAt(c?.updatedAt ?? conversation.model_updated_at ?? conversation.updated_at);
+    setPreviousModelId(c?.previousModelId);
     setInput("");
     setAttachments([]);
     stickToBottomRef.current = true;
@@ -334,6 +337,9 @@ export function ChatWindow({
       useModelId = "google/gemini-2.5-pro";
     }
     setModelId(useModelId);
+    if (useModelId !== modelId) {
+      setPreviousModelId(modelId);
+    }
     if (useModelId !== conversation.model_id) {
       ModelCache.set(conversation.id, useModelId);
       setModelUpdatedAt(new Date().toISOString());
@@ -458,6 +464,7 @@ export function ChatWindow({
             <ModelPicker
               modelId={modelId}
               onChange={(id) => {
+                if (id !== modelId) setPreviousModelId(modelId);
                 setModelId(id);
                 setAutoMode(false);
                 ModelCache.set(conversation.id, id);
@@ -472,12 +479,43 @@ export function ChatWindow({
               onAutoToggle={setAutoMode}
               hideUserModels={guest}
             />
-            <span
-              className="text-[10px] text-muted-foreground/70 tabular-nums"
-              title={`Model last changed at ${new Date(modelUpdatedAt).toLocaleString()} by ${userEmail}`}
-            >
-              changed {formatRelativeTime(modelUpdatedAt)} · {userEmail}
-            </span>
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="cursor-help text-[10px] text-muted-foreground/70 tabular-nums">
+                    changed {formatRelativeTime(modelUpdatedAt)} · {userEmail}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="end" className="max-w-xs text-xs">
+                  <div className="space-y-1">
+                    <div className="font-semibold">Model change</div>
+                    <div>
+                      <span className="text-muted-foreground">Previous: </span>
+                      {previousModelId
+                        ? (getModelById(previousModelId)?.label ?? previousModelId)
+                        : "—"}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Current: </span>
+                      {getModelById(modelId)?.label ?? modelId}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">At: </span>
+                      <span className="tabular-nums">
+                        {new Date(modelUpdatedAt).toLocaleString(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "medium",
+                        })}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">By: </span>
+                      {userEmail}
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 
