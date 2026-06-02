@@ -62,6 +62,23 @@ export const CATEGORY_META: Record<ModelCategory, { label: string; icon: string;
 
 export const DEFAULT_MODEL = "google/gemini-3-flash-preview";
 
+/**
+ * Signature of the model registry + provider mapping. Bumps automatically
+ * whenever a model id, its provider, or its category changes. Used by client
+ * caches (e.g. ModelCache) to auto-invalidate stale entries that may point at
+ * a removed model or a model that has been rerouted to a different provider.
+ */
+export const MODELS_SCHEMA_SIGNATURE: string = (() => {
+  const parts = MODELS
+    .map((m) => `${m.id}|${m.provider ?? "lovable"}|${m.category}`)
+    .sort();
+  // tiny fast hash (djb2)
+  let h = 5381;
+  const s = parts.join(";");
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return `v2.${(h >>> 0).toString(36)}`;
+})();
+
 export function getModelById(id: string): ModelConfig | undefined {
   return MODELS.find((m) => m.id === id);
 }
