@@ -156,3 +156,36 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
     </div>
   );
 }
+
+function UserModelRow({
+  model,
+  active,
+  onPick,
+}: {
+  model: UserModelDTO;
+  active: boolean;
+  onPick: () => void;
+}) {
+  const preset = presetFor(model.provider);
+  return (
+    <button
+      onClick={onPick}
+      className={cn(
+        "flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-xs transition",
+        active ? "bg-accent" : "hover:bg-accent/60",
+      )}
+    >
+      <span className="text-base leading-none">{preset?.badge ?? "🧩"}</span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="font-semibold text-foreground truncate">{model.label}</span>
+          <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted-foreground">
+            {preset?.label ?? model.provider}
+          </span>
+        </div>
+        <p className="text-muted-foreground line-clamp-1 font-mono text-[10px]">{model.model_id}</p>
+      </div>
+      {active && <Check className="h-3.5 w-3.5 text-primary mt-0.5" />}
+    </button>
+  );
+}
