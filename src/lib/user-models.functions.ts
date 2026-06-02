@@ -109,7 +109,14 @@ export const updateUserModel = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => UpdateInput.parse(input))
   .handler(async ({ data, context }): Promise<{ model: UserModelDTO }> => {
     const { supabase } = context;
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      label?: string;
+      base_url?: string;
+      model_id?: string;
+      category?: string;
+      enabled?: boolean;
+      api_key_ciphertext?: string;
+    } = {};
     if (data.label !== undefined) patch.label = data.label;
     if (data.base_url !== undefined) patch.base_url = data.base_url;
     if (data.model_id !== undefined) patch.model_id = data.model_id;
