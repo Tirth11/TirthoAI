@@ -73,6 +73,67 @@ export const Route = createFileRoute("/api/chat")({
           model = createLovableAiGatewayProvider(key)(chosen);
         }
 
+        // Classify provider errors into safe, user-facing messages.
+        // Never include API keys, tokens, or full provider response bodies.
+        const classifyProviderError = (err: unknown): { status: number; code: string; message: string } => {
+          const raw = err instanceof Error ? err.message : String(err ?? "");
+          const safe = raw
+            .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer ***")
+            .replace(/nvapi-[A-Za-z0-9_-]+/g, "nvapi-***")
+            .replace(/sk-[A-Za-z0-9_-]+/g, "sk-***");
+
+          const statusMatch = /\b(401|403|404|429|5\d{2})\b/.exec(safe);
+          const status: number | undefined =
+            (err as { statusCode?: number })?.statusCode ??
+            (err as { status?: number })?.status ??
+            (statusMatch ? Number(statusMatch[1]) : undefined);
+
+          if (provider === "nvidia") {
+            if (status === 401) {
+              return {
+                status: 401,
+                code: "nvidia_unauthorized",
+                message:
+                  "NVIDIA rejected the API key (401). NVIDIA_API_KEY is missing, expired, or invalid. Rotate the server secret and retry.",
+              };
+            }
+            if (status === 403) {
+              return {
+                status: 403,
+                code: "nvidia_forbidden",
+                message:
+                  "NVIDIA refused the request (403). The key is valid but lacks access to this model, or the account is out of quota.",
+              };
+            }
+            if (status === 404) {
+              return {
+                status: 404,
+                code: "nvidia_model_not_found",
+                message: `NVIDIA returned 404 for model "${chosen}". The model id may be wrong or unavailable to this account.`,
+              };
+            }
+            if (status === 429) {
+              return { status: 429, code: "nvidia_rate_limited", message: "NVIDIA rate limit hit (429). Retry shortly." };
+            }
+            if (status && status >= 500) {
+              return {
+                status: 502,
+                code: "nvidia_upstream_error",
+                message: `NVIDIA upstream error (${status}). Provider is having issues — retry shortly.`,
+              };
+            }
+            return { status: 500, code: "nvidia_request_failed", message: `NVIDIA request failed: ${safe.slice(0, 300)}` };
+          }
+
+          if (status === 401 || status === 403) {
+            return { status, code: "lovable_unauthorized", message: "AI gateway rejected the request." };
+          }
+          if (status === 429) {
+            return { status: 429, code: "rate_limited", message: "Rate limit hit. Retry shortly." };
+          }
+          return { status: 500, code: "ai_request_failed", message: safe.slice(0, 300) || "AI request failed" };
+        };
+
         try {
           const result = streamText({
             model,
@@ -81,15 +142,27 @@ export const Route = createFileRoute("/api/chat")({
               "Respond clearly and use markdown (headings, lists, fenced code blocks) when it improves clarity. " +
               "If the user shares an image or file, refer to it naturally.",
             messages: await convertToModelMessages(messages as UIMessage[]),
+            onError: ({ error }) => {
+              const c = classifyProviderError(error);
+              console.error(`[chat] provider=${provider} model=${chosen} code=${c.code} status=${c.status} :: ${c.message}`);
+            },
           });
 
           return result.toUIMessageStreamResponse({
             originalMessages: messages as UIMessage[],
             headers: { "x-credits-remaining": String(remaining ?? "") },
+            onError: (error) => {
+              const c = classifyProviderError(error);
+              return JSON.stringify({ error: c.code, message: c.message });
+            },
           });
         } catch (err) {
-          const message = err instanceof Error ? err.message : "AI request failed";
-          return new Response(message, { status: 500 });
+          const c = classifyProviderError(err);
+          console.error(`[chat] provider=${provider} model=${chosen} code=${c.code} status=${c.status} :: ${c.message}`);
+          return new Response(
+            JSON.stringify({ error: c.code, message: c.message }),
+            { status: c.status, headers: { "Content-Type": "application/json" } },
+          );
         }
       },
     },
