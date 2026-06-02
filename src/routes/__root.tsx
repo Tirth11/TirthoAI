@@ -135,7 +135,7 @@ const SPLASH_HIDE_SCRIPT = `(function(){var SHOWN_AT=Date.now();var MIN_SHOW=400
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* eslint-disable-next-line react/no-danger */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
