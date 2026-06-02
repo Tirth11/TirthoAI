@@ -11,13 +11,17 @@ import {
   X,
   Check,
   Zap,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { type DBConversation } from "@/lib/chat-db";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
 import { useCredits, FREE_CREDITS } from "@/hooks/use-credits";
+import { useProfile } from "@/hooks/use-profile";
 import { CreditsHistoryModal } from "@/components/CreditsHistoryModal";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Props {
   conversations: DBConversation[];
