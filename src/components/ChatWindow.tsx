@@ -440,21 +440,31 @@ export function ChatWindow({
               {credits}/{totalCredits}
             </span>
           )}
-          <ModelPicker
-            modelId={modelId}
-            onChange={(id) => {
-              setModelId(id);
-              setAutoMode(false);
-              if (!guest) {
-                ChatDB.updateConversation(conversation.id, { model_id: id })
-                  .then(onConversationChange)
-                  .catch(console.error);
-              }
-            }}
-            autoMode={autoMode}
-            onAutoToggle={setAutoMode}
-            hideUserModels={guest}
-          />
+          <div className="flex flex-col items-end gap-0.5">
+            <ModelPicker
+              modelId={modelId}
+              onChange={(id) => {
+                setModelId(id);
+                setAutoMode(false);
+                ModelCache.set(conversation.id, id);
+                setModelUpdatedAt(new Date().toISOString());
+                if (!guest) {
+                  ChatDB.updateConversation(conversation.id, { model_id: id })
+                    .then(onConversationChange)
+                    .catch(console.error);
+                }
+              }}
+              autoMode={autoMode}
+              onAutoToggle={setAutoMode}
+              hideUserModels={guest}
+            />
+            <span
+              className="text-[10px] text-muted-foreground/70 tabular-nums"
+              title={`Model last changed at ${new Date(modelUpdatedAt).toLocaleString()} by ${userEmail}`}
+            >
+              changed {formatRelativeTime(modelUpdatedAt)} · {userEmail}
+            </span>
+          </div>
         </div>
 
       </header>
