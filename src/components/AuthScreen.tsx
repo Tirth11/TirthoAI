@@ -228,6 +228,22 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
             </button>
           </p>
         </div>
+        {onContinueAsGuest && (
+          <div className="mt-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+        )}
+        {onContinueAsGuest && (
+          <button
+            type="button"
+            onClick={onContinueAsGuest}
+            className="mt-3 w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-accent"
+          >
+            Try free without an account · 50 messages
+          </button>
+        )}
         <p className="mt-4 text-center text-[11px] text-muted-foreground">
           Free forever up to 500 messages · No credit card required
         </p>
