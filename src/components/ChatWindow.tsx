@@ -72,9 +72,25 @@ export function ChatWindow({
   onOpenSidebar,
   userEmail,
   userId,
+  guest = false,
+  onGuestSignUp,
+  onGuestSignIn,
 }: Props) {
-  const { credits, refresh: refreshCredits } = useCredits(userId);
+  const { credits: authedCredits, refresh: refreshCredits } = useCredits(guest ? undefined : userId);
+  const [guestCredits, setGuestCreditsState] = useState<number>(() =>
+    guest ? getGuestRemaining() : GUEST_FREE_CREDITS,
+  );
+  useEffect(() => {
+    if (!guest) return;
+    const sync = () => setGuestCreditsState(getGuestRemaining());
+    window.addEventListener("guest-credits-changed", sync);
+    return () => window.removeEventListener("guest-credits-changed", sync);
+  }, [guest]);
+
+  const credits = guest ? guestCredits : authedCredits;
+  const totalCredits = guest ? GUEST_FREE_CREDITS : FREE_CREDITS;
   const outOfCredits = credits !== null && credits <= 0;
+  const [showSignup, setShowSignup] = useState(false);
   const [modelId, setModelId] = useState(conversation.model_id);
   const [autoMode, setAutoMode] = useState(true);
   const [input, setInput] = useState("");
