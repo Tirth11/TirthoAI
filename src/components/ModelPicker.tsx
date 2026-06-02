@@ -114,10 +114,13 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
                     return (
                       <button
                         key={m.label}
+                        data-testid="model-option"
+                        data-model-id={m.id}
                         onClick={() => {
                           onChange(m.id);
                           setOpen(false);
                         }}
+
                         className={cn(
                           "flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-xs transition",
                           active ? "bg-accent" : "hover:bg-accent/60"
