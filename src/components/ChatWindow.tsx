@@ -482,24 +482,30 @@ export function ChatWindow({
             <TooltipProvider delayDuration={150}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="cursor-help text-[10px] text-muted-foreground/70 tabular-nums">
+                  <span
+                    data-testid="model-changed-indicator"
+                    data-model-id={modelId}
+                    data-previous-model-id={previousModelId ?? ""}
+                    data-model-updated-at={modelUpdatedAt}
+                    className="cursor-help text-[10px] text-muted-foreground/70 tabular-nums"
+                  >
                     changed {formatRelativeTime(modelUpdatedAt)} · {userEmail}
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" align="end" className="max-w-xs text-xs">
-                  <div className="space-y-1">
+                  <div className="space-y-1" data-testid="model-changed-tooltip">
                     <div className="font-semibold">Model change</div>
-                    <div>
+                    <div data-testid="model-changed-previous">
                       <span className="text-muted-foreground">Previous: </span>
                       {previousModelId
                         ? (getModelById(previousModelId)?.label ?? previousModelId)
                         : "—"}
                     </div>
-                    <div>
+                    <div data-testid="model-changed-current">
                       <span className="text-muted-foreground">Current: </span>
                       {getModelById(modelId)?.label ?? modelId}
                     </div>
-                    <div>
+                    <div data-testid="model-changed-at">
                       <span className="text-muted-foreground">At: </span>
                       <span className="tabular-nums">
                         {new Date(modelUpdatedAt).toLocaleString(undefined, {
@@ -508,7 +514,7 @@ export function ChatWindow({
                         })}
                       </span>
                     </div>
-                    <div>
+                    <div data-testid="model-changed-by">
                       <span className="text-muted-foreground">By: </span>
                       {userEmail}
                     </div>
@@ -516,6 +522,7 @@ export function ChatWindow({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+
           </div>
         </div>
 
