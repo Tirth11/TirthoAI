@@ -323,6 +323,7 @@ export function ChatWindow({
   const greetName = firstName(userEmail);
 
   return (
+    <>
     <div className="flex h-full flex-col bg-background">
       <header className="flex items-center justify-between gap-2 border-b border-border bg-background/80 px-3 py-3 backdrop-blur sm:px-6">
         <div className="flex items-center gap-2 min-w-0">
