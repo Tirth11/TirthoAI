@@ -92,7 +92,11 @@ export function ChatWindow({
   const totalCredits = guest ? GUEST_FREE_CREDITS : FREE_CREDITS;
   const outOfCredits = credits !== null && credits <= 0;
   const [showSignup, setShowSignup] = useState(false);
-  const [modelId, setModelId] = useState(conversation.model_id);
+  const cached = ModelCache.get(conversation.id);
+  const [modelId, setModelId] = useState(cached?.modelId ?? conversation.model_id);
+  const [modelUpdatedAt, setModelUpdatedAt] = useState<string>(
+    cached?.updatedAt ?? conversation.model_updated_at ?? conversation.updated_at,
+  );
   const [autoMode, setAutoMode] = useState(true);
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
