@@ -6,6 +6,7 @@ export interface DBConversation {
   title: string;
   category: string;
   model_id: string;
+  model_updated_at: string;
   created_at: string;
   updated_at: string;
 }
