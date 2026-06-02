@@ -29,7 +29,7 @@ export interface UpdateModelInput {
 }
 
 export function useUserModels() {
-  const { session } = useAuthSession();
+  const { session, loading: authLoading } = useAuthSession();
   const list = useServerFn(listUserModels);
   const add = useServerFn(addUserModel);
   const update = useServerFn(updateUserModel);
@@ -39,7 +39,12 @@ export function useUserModels() {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    if (!session) {
+    // Wait for auth to finish loading before calling protected server fns.
+    // Without this, refresh() can fire before supabase.auth.getSession()
+    // resolves, so attachSupabaseAuth has no bearer token to attach and the
+    // server middleware rejects with "No authorization header provided".
+    if (authLoading) return;
+    if (!session?.access_token) {
       setModels([]);
       setLoading(false);
       return;
@@ -52,7 +57,7 @@ export function useUserModels() {
     } finally {
       setLoading(false);
     }
-  }, [list, session]);
+  }, [list, session, authLoading]);
 
   useEffect(() => {
     refresh();
