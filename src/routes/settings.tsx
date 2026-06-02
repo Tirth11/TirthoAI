@@ -424,7 +424,9 @@ function ModelsTab() {
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={m.enabled}
+                        disabled={pendingOps.has(m.id)}
                         onCheckedChange={async (checked) => {
+                          addPending(m.id);
                           try {
                             await toggleEnabledOptimistic(m.id, checked);
                             toast.success(
@@ -432,22 +434,32 @@ function ModelsTab() {
                             );
                           } catch (err) {
                             toast.error(
-                              err instanceof Error
-                                ? err.message
-                                : `Couldn't ${checked ? "enable" : "disable"} model`,
+                              `Couldn't ${checked ? "enable" : "disable"} "${m.label}"`,
+                              {
+                                description: "Check your connection and try again.",
+                              },
                             );
+                          } finally {
+                            removePending(m.id);
                           }
                         }}
                         aria-label={m.enabled ? "Disable model" : "Enable model"}
                       />
                       <span className="text-xs text-muted-foreground">
-                        {m.enabled ? "On" : "Off"}
+                        {pendingOps.has(m.id) ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : m.enabled ? (
+                          "On"
+                        ) : (
+                          "Off"
+                        )}
                       </span>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      disabled={pendingOps.has(m.id)}
                       onClick={() => setPendingDelete({ id: m.id, label: m.label })}
                       aria-label="Delete model"
                     >
