@@ -178,6 +178,26 @@ export const Route = createFileRoute("/api/chat")({
             }
             provider = "nvidia";
             model = createNvidiaProvider(nvKey)(chosen);
+          } else if (builtinProvider === "anthropic") {
+            const aKey = process.env.ANTHROPIC_API_KEY;
+            if (!aKey) {
+              return new Response(
+                JSON.stringify({ error: "missing_anthropic_key", message: "Claude isn't configured. Add ANTHROPIC_API_KEY in Settings." }),
+                { status: 500, headers: { "Content-Type": "application/json" } },
+              );
+            }
+            provider = "anthropic";
+            model = createAnthropicProvider(aKey)(chosen);
+          } else if (builtinProvider === "perplexity") {
+            const pKey = process.env.PERPLEXITY_API_KEY;
+            if (!pKey) {
+              return new Response(
+                JSON.stringify({ error: "missing_perplexity_key", message: "Perplexity isn't configured. Add PERPLEXITY_API_KEY in Settings." }),
+                { status: 500, headers: { "Content-Type": "application/json" } },
+              );
+            }
+            provider = "perplexity";
+            model = createPerplexityProvider(pKey)(chosen);
           } else {
             provider = "lovable";
             model = createLovableAiGatewayProvider(key)(chosen);
