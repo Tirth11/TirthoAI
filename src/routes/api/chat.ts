@@ -61,10 +61,16 @@ export const Route = createFileRoute("/api/chat")({
 
         let model;
         if (provider === "nvidia") {
-          const nvKey = process.env.NVIDIA_API_KEY;
+          // Prefer a per-user override stored in user_api_keys, fall back to env.
+          const { data: keyRow } = await supabaseAdmin
+            .from("user_api_keys")
+            .select("nvidia_api_key")
+            .eq("user_id", userId)
+            .maybeSingle();
+          const nvKey = keyRow?.nvidia_api_key?.trim() || process.env.NVIDIA_API_KEY;
           if (!nvKey) {
             return new Response(
-              JSON.stringify({ error: "missing_nvidia_key", message: "NVIDIA_API_KEY is not configured." }),
+              JSON.stringify({ error: "missing_nvidia_key", message: "NVIDIA_API_KEY is not configured. Set one in Settings." }),
               { status: 500, headers: { "Content-Type": "application/json" } },
             );
           }
