@@ -111,6 +111,7 @@ export function ChatWindow({
   const [modelUpdatedAt, setModelUpdatedAt] = useState<string>(
     cached?.updatedAt ?? conversation.model_updated_at ?? conversation.updated_at,
   );
+  const [previousModelId, setPreviousModelId] = useState<string | undefined>(cached?.previousModelId);
   const [autoMode, setAutoMode] = useState(true);
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
