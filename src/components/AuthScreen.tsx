@@ -44,6 +44,7 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
     if (!validate()) return;
     setLoading(true);
     try {
@@ -73,7 +74,14 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
         toast.success("Welcome back!");
       }
     } catch (err) {
+      // Surface the raw Supabase error in the UI so the user can see exactly
+      // why signup/signin failed, plus a friendly toast on top.
       const raw = err instanceof Error ? err.message : "Authentication failed";
+      const status = (err as { status?: number })?.status;
+      const code = (err as { code?: string })?.code;
+      const detail = [code, status].filter(Boolean).join(" · ");
+      setSubmitError(detail ? `${raw} (${detail})` : raw);
+
       let msg = raw;
       if (/pwned|leaked|compromis|weak.*password|too.*weak/i.test(raw)) {
         msg = "This password has been found in a data breach. Please choose a stronger, unique password.";
@@ -86,6 +94,8 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
     } finally {
       setLoading(false);
     }
+  };
+
 
   };
 
