@@ -393,6 +393,24 @@ export function ChatWindow({
           </h1>
         </div>
           <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 sm:flex-none sm:gap-2">
+          {guest && (
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => onGuestSignIn?.()}
+                className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent hover:text-accent-foreground"
+              >
+                Log in
+              </button>
+              <button
+                type="button"
+                onClick={() => onGuestSignUp?.()}
+                className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+              >
+                Sign up
+              </button>
+            </div>
+          )}
           {credits !== null && (
             <span
               className={cn(
@@ -421,6 +439,7 @@ export function ChatWindow({
             hideUserModels={guest}
           />
         </div>
+
       </header>
 
       {outOfCredits && (
