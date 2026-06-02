@@ -479,41 +479,43 @@ export function ChatWindow({
               onAutoToggle={setAutoMode}
               hideUserModels={guest}
             />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="cursor-help text-[10px] text-muted-foreground/70 tabular-nums">
-                  changed {formatRelativeTime(modelUpdatedAt)} · {userEmail}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" align="end" className="max-w-xs text-xs">
-                <div className="space-y-1">
-                  <div className="font-semibold">Model change</div>
-                  <div>
-                    <span className="text-muted-foreground">Previous: </span>
-                    {previousModelId
-                      ? (getModelById(previousModelId)?.label ?? previousModelId)
-                      : "—"}
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="cursor-help text-[10px] text-muted-foreground/70 tabular-nums">
+                    changed {formatRelativeTime(modelUpdatedAt)} · {userEmail}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="end" className="max-w-xs text-xs">
+                  <div className="space-y-1">
+                    <div className="font-semibold">Model change</div>
+                    <div>
+                      <span className="text-muted-foreground">Previous: </span>
+                      {previousModelId
+                        ? (getModelById(previousModelId)?.label ?? previousModelId)
+                        : "—"}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Current: </span>
+                      {getModelById(modelId)?.label ?? modelId}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">At: </span>
+                      <span className="tabular-nums">
+                        {new Date(modelUpdatedAt).toLocaleString(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "medium",
+                        })}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">By: </span>
+                      {userEmail}
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Current: </span>
-                    {getModelById(modelId)?.label ?? modelId}
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">At: </span>
-                    <span className="tabular-nums">
-                      {new Date(modelUpdatedAt).toLocaleString(undefined, {
-                        dateStyle: "medium",
-                        timeStyle: "medium",
-                      })}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">By: </span>
-                    {userEmail}
-                  </div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 
