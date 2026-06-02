@@ -442,7 +442,14 @@ export function ChatWindow({
         </div>
       )}
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-5 sm:px-6 sm:py-6">
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 overflow-y-auto px-3 py-5 sm:px-6 sm:py-6"
+        style={{
+          paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+          paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+        }}
+      >
         <div className="mx-auto max-w-3xl space-y-5 sm:space-y-6">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center pt-8 pb-4 text-center">
