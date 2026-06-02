@@ -363,7 +363,14 @@ export function ChatWindow({
       className="flex h-full min-h-0 flex-col bg-background"
       style={{ height: "calc(100% - var(--kb-inset, 0px))" }}
     >
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-background/80 px-3 py-2.5 backdrop-blur sm:flex-nowrap sm:px-6 sm:py-3">
+      <header
+        className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-background/80 px-3 py-2.5 backdrop-blur sm:flex-nowrap sm:px-6 sm:py-3"
+        style={{
+          paddingTop: "max(0.625rem, env(safe-area-inset-top))",
+          paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+          paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+        }}
+      >
         <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={onOpenSidebar}
@@ -435,7 +442,14 @@ export function ChatWindow({
         </div>
       )}
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-5 sm:px-6 sm:py-6">
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 overflow-y-auto px-3 py-5 sm:px-6 sm:py-6"
+        style={{
+          paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+          paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+        }}
+      >
         <div className="mx-auto max-w-3xl space-y-5 sm:space-y-6">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center pt-8 pb-4 text-center">
@@ -505,7 +519,14 @@ export function ChatWindow({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-border bg-background/80 px-3 py-3 backdrop-blur sm:px-6 sm:py-4">
+      <div
+        className="shrink-0 border-t border-border bg-background/80 px-3 py-3 backdrop-blur sm:px-6 sm:py-4"
+        style={{
+          paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+          paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+          paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+        }}
+      >
         <div className="mx-auto max-w-3xl">
           {attachments.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
