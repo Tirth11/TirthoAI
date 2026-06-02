@@ -73,6 +73,7 @@ function GuestLayout({ onGoToAuth }: { onGoToAuth: (mode: "signin" | "signup") =
     title: "Guest chat",
     category: "general",
     model_id: DEFAULT_MODEL,
+    model_updated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
