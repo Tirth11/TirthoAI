@@ -26,11 +26,11 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle }: Props
   const categories = Object.keys(CATEGORY_META) as ModelCategory[];
 
   return (
-    <div className="flex items-center gap-2" ref={ref}>
+    <div className="flex min-w-0 items-center gap-1.5 sm:gap-2" ref={ref}>
       <button
         onClick={() => onAutoToggle(!autoMode)}
         className={cn(
-          "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+          "flex shrink-0 items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs font-semibold transition sm:px-2.5",
           autoMode
             ? "border-primary bg-primary/15 text-primary"
             : "border-border bg-card text-muted-foreground hover:border-primary/40"
@@ -46,17 +46,17 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle }: Props
           onClick={() => setOpen((v) => !v)}
           disabled={autoMode}
           className={cn(
-            "flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium transition hover:border-primary/40",
+            "flex max-w-[44vw] items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 text-xs font-medium transition hover:border-primary/40 sm:max-w-none sm:gap-2 sm:px-3",
             autoMode && "opacity-60 cursor-not-allowed"
           )}
         >
           <span>{selected?.badge}</span>
-          <span className="max-w-[160px] truncate">{selected?.label ?? "Select model"}</span>
+          <span className="max-w-[84px] truncate sm:max-w-[160px]">{selected?.label ?? "Select model"}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
 
         {open && (
-          <div className="absolute right-0 z-50 mt-2 w-80 max-h-[60vh] overflow-y-auto rounded-xl border border-border bg-popover p-2 shadow-2xl">
+          <div className="fixed inset-x-3 top-16 z-50 max-h-[70dvh] overflow-y-auto rounded-xl border border-border bg-popover p-2 shadow-2xl sm:absolute sm:inset-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 sm:max-h-[60vh]">
             {categories.map((cat) => {
               const meta = CATEGORY_META[cat];
               const items = MODELS.filter((m) => m.category === cat);
