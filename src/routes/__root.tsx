@@ -80,6 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "google-site-verification", content: "g9CYLbz5CvVTQuCn0xz0BEXtckiBh9br1Ob7WsaFGH4" },
       { title: "TirthoAI — Multi-Model AI Workspace" },
       {
         name: "description",
