@@ -74,6 +74,27 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_usage: {
+        Row: {
+          created_at: string
+          credits_used: number
+          guest_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits_used?: number
+          guest_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits_used?: number
+          guest_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           conversation_id: string
@@ -223,6 +244,10 @@ export type Database = {
     }
     Functions: {
       consume_credit: { Args: { _user_id: string }; Returns: number }
+      consume_guest_credit: {
+        Args: { _guest_id: string; _limit?: number }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
