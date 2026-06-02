@@ -58,6 +58,8 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
         <button
           onClick={() => setOpen((v) => !v)}
           disabled={autoMode}
+          data-testid="model-picker-trigger"
+          data-model-id={modelId}
           className={cn(
             "flex max-w-[44vw] items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 text-xs font-medium transition hover:border-primary/40 sm:max-w-none sm:gap-2 sm:px-3",
             autoMode && "opacity-60 cursor-not-allowed"
@@ -67,6 +69,7 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
           <span className="max-w-[84px] truncate sm:max-w-[160px]">{selectedLabel}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
+
 
         {open && (
           <div className="fixed inset-x-3 top-16 z-50 max-h-[70dvh] overflow-y-auto rounded-xl border border-border bg-popover p-2 shadow-2xl sm:absolute sm:inset-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 sm:max-h-[60vh]">
