@@ -11,6 +11,7 @@ import {
   X,
   Check,
   Zap,
+  Settings,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { type DBConversation } from "@/lib/chat-db";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
 import { useCredits, FREE_CREDITS } from "@/hooks/use-credits";
 import { CreditsHistoryModal } from "@/components/CreditsHistoryModal";
+import { ProviderSettingsModal } from "@/components/ProviderSettingsModal";
 
 interface Props {
   conversations: DBConversation[];
