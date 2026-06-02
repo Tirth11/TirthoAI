@@ -171,7 +171,7 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
                     }}
                     placeholder="Confirm password"
                     required
-                    minLength={6}
+                    minLength={8}
                     autoComplete="new-password"
                     aria-invalid={!!errors.confirm}
                     className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 aria-invalid:border-destructive"
