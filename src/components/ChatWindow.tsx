@@ -262,11 +262,13 @@ export function ChatWindow({
   };
 
   useEffect(() => {
-    setModelId(conversation.model_id);
+    const c = ModelCache.get(conversation.id);
+    setModelId(c?.modelId ?? conversation.model_id);
+    setModelUpdatedAt(c?.updatedAt ?? conversation.model_updated_at ?? conversation.updated_at);
     setInput("");
     setAttachments([]);
     stickToBottomRef.current = true;
-  }, [conversation.id, conversation.model_id]);
+  }, [conversation.id, conversation.model_id, conversation.model_updated_at, conversation.updated_at]);
 
   useEffect(() => {
     const ta = textareaRef.current;
