@@ -314,13 +314,35 @@ function ModelsTab() {
     models,
     loading,
     addModel,
-    toggleEnabledOptimistic,
+    updateModel,
     deleteModelOptimistic,
   } = useUserModels();
   const [showForm, setShowForm] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; label: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [pendingOps, setPendingOps] = useState<Set<string>>(new Set());
+
+  // Draft toggles: id -> desired enabled value (only present when it differs from server state).
+  const [draftToggles, setDraftToggles] = useState<Record<string, boolean>>({});
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [savingToggles, setSavingToggles] = useState(false);
+
+  // Drop draft entries that already match the server (e.g. after a refresh).
+  useEffect(() => {
+    setDraftToggles((prev) => {
+      const next: Record<string, boolean> = {};
+      let changed = false;
+      for (const [id, val] of Object.entries(prev)) {
+        const m = models.find((x) => x.id === id);
+        if (m && m.enabled !== val) {
+          next[id] = val;
+        } else {
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [models]);
 
   const addPending = (id: string) =>
     setPendingOps((prev) => new Set(prev).add(id));
@@ -331,22 +353,105 @@ function ModelsTab() {
       return next;
     });
 
-  const handleConfirmDelete = async () => {
-    if (!pendingDelete) return;
-    setDeleting(true);
-    const { id, label } = pendingDelete;
+  const effectiveEnabled = (m: { id: string; enabled: boolean }) =>
+    draftToggles[m.id] ?? m.enabled;
+
+  const draftEntries = Object.entries(draftToggles);
+  const pendingChangeCount = draftEntries.length;
+
+  const handleToggleDraft = (id: string, serverValue: boolean, checked: boolean) => {
+    setDraftToggles((prev) => {
+      const next = { ...prev };
+      if (checked === serverValue) {
+        delete next[id];
+      } else {
+        next[id] = checked;
+      }
+      return next;
+    });
+  };
+
+  const performDelete = async (id: string, label: string) => {
     addPending(id);
     try {
       await deleteModelOptimistic(id);
       toast.success(`Deleted "${label}"`);
-      setPendingDelete(null);
     } catch (err) {
       toast.error(`Couldn't delete "${label}"`, {
         description: "Check your connection and try again.",
+        action: {
+          label: "Retry",
+          onClick: () => {
+            void performDelete(id, label);
+          },
+        },
       });
     } finally {
-      setDeleting(false);
       removePending(id);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
+    const { id, label } = pendingDelete;
+    setDeleting(true);
+    setPendingDelete(null);
+    try {
+      await performDelete(id, label);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleSaveToggles = async () => {
+    const entries = Object.entries(draftToggles);
+    if (entries.length === 0) {
+      setShowSaveConfirm(false);
+      return;
+    }
+    setSavingToggles(true);
+    try {
+      const results = await Promise.allSettled(
+        entries.map(([id, enabled]) => updateModel({ id, enabled })),
+      );
+      const failed: [string, boolean][] = [];
+      results.forEach((r, i) => {
+        if (r.status === "rejected") failed.push(entries[i]);
+      });
+      if (failed.length === 0) {
+        toast.success(
+          `Saved ${entries.length} model change${entries.length === 1 ? "" : "s"}`,
+        );
+        setDraftToggles({});
+        setShowSaveConfirm(false);
+      } else {
+        const failedIds = new Set(failed.map(([id]) => id));
+        setDraftToggles((prev) => {
+          const next: Record<string, boolean> = {};
+          for (const [id, val] of Object.entries(prev)) {
+            if (failedIds.has(id)) next[id] = val;
+          }
+          return next;
+        });
+        setShowSaveConfirm(false);
+        const failedLabels = failed
+          .map(([id]) => models.find((m) => m.id === id)?.label ?? id)
+          .join(", ");
+        toast.error(
+          `Couldn't save ${failed.length} of ${entries.length} change${entries.length === 1 ? "" : "s"}`,
+          {
+            description: `Still pending: ${failedLabels}`,
+            action: {
+              label: "Retry",
+              onClick: () => {
+                void handleSaveToggles();
+              },
+            },
+          },
+        );
+      }
+    } finally {
+      setSavingToggles(false);
     }
   };
 
@@ -388,88 +493,110 @@ function ModelsTab() {
             No custom models yet. Add one to make it appear in the chat model picker.
           </p>
         ) : (
-          <ul className="space-y-2">
-            {models.map((m) => {
-              const preset = presetFor(m.provider);
-              return (
-                <li
-                  key={m.id}
-                  className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-center"
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <span className="text-xl" aria-hidden>
-                      {preset?.badge ?? "🧩"}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="truncate text-sm font-semibold">{m.label}</span>
-                        <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                          {preset?.label ?? m.provider}
-                        </span>
-                        <span
-                          className={cn(
-                            "rounded-full bg-gradient-to-r px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white",
-                            CATEGORY_META[m.category].color,
-                          )}
-                        >
-                          {CATEGORY_META[m.category].label}
-                        </span>
-                      </div>
-                      <div className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
-                        {m.model_id} · key {m.key_hint ?? "—"}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 self-end sm:self-auto">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={m.enabled}
-                        disabled={pendingOps.has(m.id)}
-                        onCheckedChange={async (checked) => {
-                          addPending(m.id);
-                          try {
-                            await toggleEnabledOptimistic(m.id, checked);
-                            toast.success(
-                              checked ? `Enabled "${m.label}"` : `Disabled "${m.label}"`,
-                            );
-                          } catch (err) {
-                            toast.error(
-                              `Couldn't ${checked ? "enable" : "disable"} "${m.label}"`,
-                              {
-                                description: "Check your connection and try again.",
-                              },
-                            );
-                          } finally {
-                            removePending(m.id);
-                          }
-                        }}
-                        aria-label={m.enabled ? "Disable model" : "Enable model"}
-                      />
-                      <span className="text-xs text-muted-foreground">
-                        {pendingOps.has(m.id) ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : m.enabled ? (
-                          "On"
-                        ) : (
-                          "Off"
-                        )}
+          <>
+            <ul className="space-y-2">
+              {models.map((m) => {
+                const preset = presetFor(m.provider);
+                const checked = effectiveEnabled(m);
+                const isDirty = draftToggles[m.id] !== undefined;
+                return (
+                  <li
+                    key={m.id}
+                    className={cn(
+                      "flex flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:items-center",
+                      isDirty ? "border-primary/50 ring-1 ring-primary/30" : "border-border",
+                    )}
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <span className="text-xl" aria-hidden>
+                        {preset?.badge ?? "🧩"}
                       </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="truncate text-sm font-semibold">{m.label}</span>
+                          <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                            {preset?.label ?? m.provider}
+                          </span>
+                          <span
+                            className={cn(
+                              "rounded-full bg-gradient-to-r px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white",
+                              CATEGORY_META[m.category].color,
+                            )}
+                          >
+                            {CATEGORY_META[m.category].label}
+                          </span>
+                          {isDirty && (
+                            <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                              Unsaved
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+                          {m.model_id} · key {m.key_hint ?? "—"}
+                        </div>
+                      </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      disabled={pendingOps.has(m.id)}
-                      onClick={() => setPendingDelete({ id: m.id, label: m.label })}
-                      aria-label="Delete model"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                    <div className="flex items-center gap-3 self-end sm:self-auto">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={checked}
+                          disabled={pendingOps.has(m.id) || savingToggles}
+                          onCheckedChange={(v) => handleToggleDraft(m.id, m.enabled, v)}
+                          aria-label={checked ? "Disable model" : "Enable model"}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {pendingOps.has(m.id) ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : checked ? (
+                            "On"
+                          ) : (
+                            "Off"
+                          )}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        disabled={pendingOps.has(m.id) || savingToggles}
+                        onClick={() => setPendingDelete({ id: m.id, label: m.label })}
+                        aria-label="Delete model"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {pendingChangeCount > 0 && (
+              <div className="sticky bottom-3 mt-4 flex flex-col gap-2 rounded-lg border border-primary/40 bg-card/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-foreground">
+                  <span className="font-semibold">{pendingChangeCount}</span> unsaved{" "}
+                  {pendingChangeCount === 1 ? "change" : "changes"}
+                </p>
+                <div className="flex gap-2 self-end sm:self-auto">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={savingToggles}
+                    onClick={() => setDraftToggles({})}
+                  >
+                    Discard
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={savingToggles}
+                    onClick={() => setShowSaveConfirm(true)}
+                  >
+                    {savingToggles && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                    Save changes
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </SectionCard>
 
@@ -500,6 +627,60 @@ function ModelsTab() {
             >
               {deleting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={showSaveConfirm}
+        onOpenChange={(open) => {
+          if (!open && !savingToggles) setShowSaveConfirm(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Save {pendingChangeCount} change{pendingChangeCount === 1 ? "" : "s"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p className="mb-2">These models will be updated in your chat picker:</p>
+                <ul className="space-y-1 text-sm">
+                  {draftEntries.map(([id, enabled]) => {
+                    const m = models.find((x) => x.id === id);
+                    if (!m) return null;
+                    return (
+                      <li key={id} className="flex items-center justify-between gap-2">
+                        <span className="truncate font-medium text-foreground">{m.label}</span>
+                        <span
+                          className={cn(
+                            "rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                            enabled
+                              ? "bg-primary/15 text-primary"
+                              : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {enabled ? "Enable" : "Disable"}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={savingToggles}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void handleSaveToggles();
+              }}
+              disabled={savingToggles}
+            >
+              {savingToggles && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Save changes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
