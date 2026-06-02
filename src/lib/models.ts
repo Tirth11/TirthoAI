@@ -44,6 +44,21 @@ export const MODELS: ModelConfig[] = [
   { label: "Kimi K2", id: "moonshotai/kimi-k2-instruct", provider: "nvidia", category: "creative", badge: "🌙", description: "Moonshot Kimi K2 via NVIDIA" },
   { label: "Llama 3.3 70B", id: "meta/llama-3.3-70b-instruct", provider: "nvidia", category: "general", badge: "🦙", description: "Meta Llama 3.3 70B via NVIDIA" },
   { label: "Qwen 2.5 Coder 32B", id: "qwen/qwen2.5-coder-32b-instruct", provider: "nvidia", category: "coding", badge: "🧩", description: "Qwen Coder via NVIDIA" },
+  { label: "Llama 4 Maverick", id: "meta/llama-4-maverick-17b-128e-instruct", provider: "nvidia", category: "general", badge: "🦅", description: "Meta Llama 4 Maverick via NVIDIA" },
+  { label: "Llama 4 Scout", id: "meta/llama-4-scout-17b-16e-instruct", provider: "nvidia", category: "reasoning", badge: "🛰️", description: "Meta Llama 4 Scout via NVIDIA" },
+  { label: "Mistral Small 3.1", id: "mistralai/mistral-small-24b-instruct", provider: "nvidia", category: "general", badge: "🌬️", description: "Mistral Small via NVIDIA" },
+  { label: "Nemotron 70B", id: "nvidia/llama-3.1-nemotron-70b-instruct", provider: "nvidia", category: "reasoning", badge: "⚙️", description: "NVIDIA Nemotron 70B" },
+  { label: "Qwen 3 235B", id: "qwen/qwen3-235b-a22b", provider: "nvidia", category: "reasoning", badge: "🧠", description: "Qwen 3 MoE via NVIDIA" },
+
+  // Anthropic Claude (requires ANTHROPIC_API_KEY)
+  { label: "Claude Sonnet 4.5", id: "claude-sonnet-4-5", provider: "anthropic", category: "reasoning", badge: "🎼", description: "Anthropic Claude Sonnet 4.5" },
+  { label: "Claude Opus 4.1", id: "claude-opus-4-1", provider: "anthropic", category: "reasoning", badge: "🪕", description: "Anthropic Claude Opus 4.1 — top quality" },
+  { label: "Claude Haiku 4.5", id: "claude-haiku-4-5", provider: "anthropic", category: "general", badge: "🍃", description: "Fast, cheap Claude Haiku" },
+
+  // Perplexity Sonar (requires PERPLEXITY_API_KEY) — web-grounded answers
+  { label: "Sonar", id: "sonar", provider: "perplexity", category: "general", badge: "🔎", description: "Perplexity web-grounded search" },
+  { label: "Sonar Pro", id: "sonar-pro", provider: "perplexity", category: "reasoning", badge: "🛰️", description: "Perplexity multi-step research with citations" },
+  { label: "Sonar Reasoning", id: "sonar-reasoning", provider: "perplexity", category: "reasoning", badge: "🧭", description: "Chain-of-thought with live search" },
 ];
 
 
