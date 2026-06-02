@@ -320,19 +320,33 @@ function ModelsTab() {
   const [showForm, setShowForm] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; label: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pendingOps, setPendingOps] = useState<Set<string>>(new Set());
+
+  const addPending = (id: string) =>
+    setPendingOps((prev) => new Set(prev).add(id));
+  const removePending = (id: string) =>
+    setPendingOps((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
 
   const handleConfirmDelete = async () => {
     if (!pendingDelete) return;
     setDeleting(true);
     const { id, label } = pendingDelete;
+    addPending(id);
     try {
       await deleteModelOptimistic(id);
       toast.success(`Deleted "${label}"`);
       setPendingDelete(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't delete model");
+      toast.error(`Couldn't delete "${label}"`, {
+        description: "Check your connection and try again.",
+      });
     } finally {
       setDeleting(false);
+      removePending(id);
     }
   };
 
