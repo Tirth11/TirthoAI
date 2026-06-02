@@ -71,10 +71,20 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
         toast.success("Welcome back!");
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Authentication failed");
+      const raw = err instanceof Error ? err.message : "Authentication failed";
+      let msg = raw;
+      if (/pwned|leaked|compromis|weak.*password|too.*weak/i.test(raw)) {
+        msg = "This password has been found in a data breach. Please choose a stronger, unique password.";
+      } else if (/password.*should be at least|at least 8|minimum.*length/i.test(raw)) {
+        msg = "Password must be at least 8 characters.";
+      } else if (/already registered|already.*exists|user.*exists/i.test(raw)) {
+        msg = "An account with this email already exists. Try signing in instead.";
+      }
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
+
   };
 
   return (
