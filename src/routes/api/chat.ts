@@ -61,24 +61,14 @@ export const Route = createFileRoute("/api/chat")({
 
         let model;
         if (provider === "nvidia") {
-          // Prefer a per-user override stored in user_api_keys, fall back to env.
-          const { data: keyRow } = await supabaseAdmin
-            .from("user_api_keys")
-            .select("nvidia_api_key")
-            .eq("user_id", userId)
-            .maybeSingle();
-          const { tryDecryptSecret } = await import("@/lib/secret-crypto.server");
-          const stored = keyRow?.nvidia_api_key ?? null;
-          const decoded = tryDecryptSecret(stored)?.trim() || null;
-          const nvKey = decoded || process.env.NVIDIA_API_KEY;
+          const nvKey = process.env.NVIDIA_API_KEY;
           if (!nvKey) {
             return new Response(
-              JSON.stringify({ error: "missing_nvidia_key", message: "NVIDIA_API_KEY is not configured. Set one in Settings." }),
+              JSON.stringify({ error: "missing_nvidia_key", message: "NVIDIA provider is not configured on the server." }),
               { status: 500, headers: { "Content-Type": "application/json" } },
             );
           }
           model = createNvidiaProvider(nvKey)(chosen);
-
         } else {
           model = createLovableAiGatewayProvider(key)(chosen);
         }
