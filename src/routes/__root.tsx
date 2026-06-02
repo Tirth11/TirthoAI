@@ -191,6 +191,7 @@ function RootComponent() {
         }}
       />
       <BuildStatusOverlay />
+      <SafeAreaDiagnostic />
     </QueryClientProvider>
   );
 }
