@@ -28,11 +28,14 @@ export function useCredits(userId: string | undefined) {
     refresh();
   }, [refresh]);
 
-  // Realtime updates
+  // Realtime updates. Use a unique channel name per mount so React strict-mode
+  // re-mounts don't reuse an already-subscribed channel (which throws when
+  // .on() is called after .subscribe()).
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase
-      .channel(`credits-${userId}`)
+    const channelName = `credits-${userId}-${Math.random().toString(36).slice(2, 10)}`;
+    const channel = supabase.channel(channelName);
+    channel
       .on(
         "postgres_changes",
         {

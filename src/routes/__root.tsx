@@ -12,6 +12,7 @@ import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { BuildStatusOverlay } from "../components/BuildStatusOverlay";
 
 function NotFoundComponent() {
   return (
@@ -188,6 +189,7 @@ function RootComponent() {
           },
         }}
       />
+      <BuildStatusOverlay />
     </QueryClientProvider>
   );
 }
