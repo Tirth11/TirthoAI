@@ -13,6 +13,12 @@ import { isGuestMode, enterGuestMode, exitGuestMode } from "@/lib/guest";
 export const Route = createFileRoute("/")({
   component: Index,
   ssr: false,
+  head: () => ({
+    meta: [
+      { property: "og:url", content: "https://tirthoai.lovable.app/" },
+    ],
+    links: [{ rel: "canonical", href: "https://tirthoai.lovable.app/" }],
+  }),
 });
 
 function subscribeGuest(cb: () => void) {
