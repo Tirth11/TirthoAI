@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiProviderStatusRouteImport } from './routes/api/provider-status'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiProviderStatusRoute = ApiProviderStatusRouteImport.update({
+  id: '/api/provider-status',
+  path: '/api/provider-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
@@ -33,30 +39,39 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/provider-status': typeof ApiProviderStatusRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/provider-status': typeof ApiProviderStatusRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/provider-status': typeof ApiProviderStatusRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/reset-password' | '/api/chat'
+  fullPaths: '/' | '/reset-password' | '/api/chat' | '/api/provider-status'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/reset-password' | '/api/chat'
-  id: '__root__' | '/' | '/reset-password' | '/api/chat'
+  to: '/' | '/reset-password' | '/api/chat' | '/api/provider-status'
+  id:
+    | '__root__'
+    | '/'
+    | '/reset-password'
+    | '/api/chat'
+    | '/api/provider-status'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiProviderStatusRoute: typeof ApiProviderStatusRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,6 +90,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/provider-status': {
+      id: '/api/provider-status'
+      path: '/api/provider-status'
+      fullPath: '/api/provider-status'
+      preLoaderRoute: typeof ApiProviderStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
@@ -89,6 +111,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiProviderStatusRoute: ApiProviderStatusRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
