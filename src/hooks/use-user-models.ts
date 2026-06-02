@@ -6,7 +6,26 @@ import {
   updateUserModel,
   deleteUserModel,
 } from "@/lib/user-models.functions";
-import type { UserModelDTO } from "@/lib/user-models-shared";
+import type { UserModelDTO, UserModelCategory, UserModelProvider } from "@/lib/user-models-shared";
+
+export interface AddModelInput {
+  label: string;
+  provider: UserModelProvider;
+  base_url: string;
+  model_id: string;
+  api_key: string;
+  category?: UserModelCategory;
+}
+
+export interface UpdateModelInput {
+  id: string;
+  label?: string;
+  base_url?: string;
+  model_id?: string;
+  api_key?: string;
+  category?: UserModelCategory;
+  enabled?: boolean;
+}
 
 export function useUserModels() {
   const list = useServerFn(listUserModels);
@@ -19,7 +38,7 @@ export function useUserModels() {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await list({});
+      const res = await list();
       setModels(res.models);
     } catch (e) {
       console.error("listUserModels failed", e);
@@ -36,12 +55,12 @@ export function useUserModels() {
     models,
     loading,
     refresh,
-    addModel: async (input: Parameters<typeof add>[0]["data"]) => {
+    addModel: async (input: AddModelInput) => {
       const res = await add({ data: input });
       await refresh();
       return res.model;
     },
-    updateModel: async (input: Parameters<typeof update>[0]["data"]) => {
+    updateModel: async (input: UpdateModelInput) => {
       const res = await update({ data: input });
       await refresh();
       return res.model;
