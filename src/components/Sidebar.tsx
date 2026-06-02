@@ -202,6 +202,9 @@ export function Sidebar({
                           />
                         )}
                         <div
+                          data-testid="conversation-row"
+                          data-conversation-id={c.id}
+                          data-active={active ? "true" : "false"}
                           className={cn(
                             "group flex items-center gap-2 rounded-lg pl-3 pr-1.5 py-2 text-sm transition cursor-pointer",
                             active
@@ -210,6 +213,7 @@ export function Sidebar({
                           )}
                           onClick={() => !isEditing && !isConfirming && onSelect(c.id)}
                         >
+
                           <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           {isEditing ? (
                             <input
