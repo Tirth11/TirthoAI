@@ -24,6 +24,8 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
     password?: string;
     confirm?: string;
   }>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
 
   const validate = (): boolean => {
     const next: typeof errors = {};
