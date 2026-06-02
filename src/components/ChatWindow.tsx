@@ -278,11 +278,11 @@ export function ChatWindow({
       useModelId = "google/gemini-2.5-pro";
     }
     setModelId(useModelId);
-    if (useModelId !== conversation.model_id) {
+    if (useModelId !== conversation.model_id && !guest) {
       ChatDB.updateConversation(conversation.id, { model_id: useModelId }).catch(console.error);
     }
 
-    if (messages.length === 0) {
+    if (messages.length === 0 && !guest) {
       ChatDB.updateConversation(conversation.id, {
         title: deriveTitle(raw || "Image chat"),
       })
