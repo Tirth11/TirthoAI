@@ -418,6 +418,7 @@ export function ChatWindow({
             }}
             autoMode={autoMode}
             onAutoToggle={setAutoMode}
+            hideUserModels={guest}
           />
         </div>
       </header>
