@@ -108,6 +108,11 @@ export function Sidebar({
           "fixed inset-y-0 left-0 md:static md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
+        style={{
+          paddingTop: "env(safe-area-inset-top)",
+          paddingBottom: "env(safe-area-inset-bottom)",
+          paddingLeft: "env(safe-area-inset-left)",
+        }}
       >
         {/* Brand */}
         <div className="flex items-center gap-2.5 px-4 pt-4 pb-3">
