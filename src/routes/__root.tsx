@@ -13,6 +13,7 @@ import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { BuildStatusOverlay } from "../components/BuildStatusOverlay";
+import { SafeAreaDiagnostic } from "../components/SafeAreaDiagnostic";
 
 function NotFoundComponent() {
   return (
