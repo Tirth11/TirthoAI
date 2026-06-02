@@ -314,7 +314,9 @@ export function ChatWindow({
     }
     setModelId(useModelId);
     if (useModelId !== conversation.model_id && !guest) {
-      ChatDB.updateConversation(conversation.id, { model_id: useModelId }).catch(console.error);
+      ChatDB.updateConversation(conversation.id, { model_id: useModelId })
+        .then(onConversationChange)
+        .catch(console.error);
     }
 
     if (messages.length === 0 && !guest) {
@@ -432,7 +434,11 @@ export function ChatWindow({
             onChange={(id) => {
               setModelId(id);
               setAutoMode(false);
-              if (!guest) ChatDB.updateConversation(conversation.id, { model_id: id }).catch(console.error);
+              if (!guest) {
+                ChatDB.updateConversation(conversation.id, { model_id: id })
+                  .then(onConversationChange)
+                  .catch(console.error);
+              }
             }}
             autoMode={autoMode}
             onAutoToggle={setAutoMode}
