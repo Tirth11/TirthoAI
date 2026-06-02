@@ -135,9 +135,10 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
                     setPassword(e.target.value);
                     if (errors.password) setErrors((p) => ({ ...p, password: undefined }));
                   }}
-                  placeholder="Password (min 6 characters)"
+                  placeholder="Password (min 8 characters)"
                   required
-                  minLength={6}
+                  minLength={8}
+
                   autoComplete={mode === "signin" ? "current-password" : "new-password"}
                   aria-invalid={!!errors.password}
                   className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-10 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 aria-invalid:border-destructive"
