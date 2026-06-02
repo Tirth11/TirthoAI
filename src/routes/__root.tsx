@@ -189,6 +189,7 @@ function RootComponent() {
           },
         }}
       />
+      <BuildStatusOverlay />
     </QueryClientProvider>
   );
 }
