@@ -512,7 +512,14 @@ export function ChatWindow({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-border bg-background/80 px-3 py-3 backdrop-blur sm:px-6 sm:py-4">
+      <div
+        className="shrink-0 border-t border-border bg-background/80 px-3 py-3 backdrop-blur sm:px-6 sm:py-4"
+        style={{
+          paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+          paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+          paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+        }}
+      >
         <div className="mx-auto max-w-3xl">
           {attachments.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
