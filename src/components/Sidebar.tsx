@@ -104,7 +104,7 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "z-40 flex h-full w-72 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-out",
+          "z-40 flex h-dvh w-[min(18rem,86vw)] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-out md:h-full md:w-72",
           "fixed inset-y-0 left-0 md:static md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
@@ -159,7 +159,7 @@ export function Sidebar({
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto px-2 pb-2">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
           {filtered.length === 0 && (
             <div className="px-3 py-8 text-center text-xs text-muted-foreground">
               {query ? "No matches" : "No conversations yet"}
@@ -289,7 +289,7 @@ export function Sidebar({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-sidebar-border px-3 py-3">
+        <div className="shrink-0 border-t border-sidebar-border px-3 py-3">
           <div className="mb-2 flex items-center gap-2 rounded-lg bg-background/40 px-2.5 py-2">
             <div
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
