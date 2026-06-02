@@ -186,7 +186,7 @@ export function ChatWindow({
 
   // Persist new messages when streaming finishes
   useEffect(() => {
-    if (status !== "ready") return;
+    if (status !== "ready" || guest) return;
     (async () => {
       for (const m of messages) {
         if (persistedIdsRef.current.has(m.id)) continue;
