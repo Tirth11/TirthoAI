@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Check, ChevronDown, Zap } from "lucide-react";
+import { Check, ChevronDown, Zap, Plus } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { MODELS, CATEGORY_META, type ModelCategory, getModelById } from "@/lib/models";
+import { USER_MODEL_PREFIX, presetFor, type UserModelDTO } from "@/lib/user-models-shared";
+import { useUserModels } from "@/hooks/use-user-models";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -8,12 +11,22 @@ interface Props {
   onChange: (id: string) => void;
   autoMode: boolean;
   onAutoToggle: (v: boolean) => void;
+  /** When true, hide custom user models (e.g. guest mode). */
+  hideUserModels?: boolean;
 }
 
-export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle }: Props) {
+export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUserModels }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const selected = getModelById(modelId);
+  const { models: userModels } = useUserModels();
+  const enabledUserModels = hideUserModels ? [] : userModels.filter((m) => m.enabled);
+
+  const userMatch = modelId.startsWith(USER_MODEL_PREFIX)
+    ? userModels.find((m) => `${USER_MODEL_PREFIX}${m.id}` === modelId)
+    : undefined;
+  const selectedBuiltIn = getModelById(modelId);
+  const selectedLabel = userMatch?.label ?? selectedBuiltIn?.label ?? "Select model";
+  const selectedBadge = userMatch ? presetFor(userMatch.provider)?.badge ?? "🧩" : selectedBuiltIn?.badge;
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
