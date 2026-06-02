@@ -320,10 +320,14 @@ export function ChatWindow({
       useModelId = "google/gemini-2.5-pro";
     }
     setModelId(useModelId);
-    if (useModelId !== conversation.model_id && !guest) {
-      ChatDB.updateConversation(conversation.id, { model_id: useModelId })
-        .then(onConversationChange)
-        .catch(console.error);
+    if (useModelId !== conversation.model_id) {
+      ModelCache.set(conversation.id, useModelId);
+      setModelUpdatedAt(new Date().toISOString());
+      if (!guest) {
+        ChatDB.updateConversation(conversation.id, { model_id: useModelId })
+          .then(onConversationChange)
+          .catch(console.error);
+      }
     }
 
     if (messages.length === 0 && !guest) {
