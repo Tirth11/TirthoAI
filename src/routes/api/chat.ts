@@ -80,7 +80,7 @@ export const Route = createFileRoute("/api/chat")({
 
         let model;
         let chosen = DEFAULT_MODEL;
-        let provider: "lovable" | "nvidia" | "user" = "lovable";
+        let provider: "lovable" | "nvidia" | "anthropic" | "perplexity" | "user" = "lovable";
 
         if (isUserModelId(requestedId)) {
           if (isGuest || !userId) {
