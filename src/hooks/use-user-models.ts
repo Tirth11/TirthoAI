@@ -65,6 +65,40 @@ export function useUserModels() {
       await refresh();
       return res.model;
     },
+    /**
+     * Optimistically flip `enabled` for a model. Updates local state
+     * immediately, then commits to the server. On failure, rolls back
+     * and rethrows so the caller can surface a toast.
+     */
+    toggleEnabledOptimistic: async (id: string, enabled: boolean) => {
+      let snapshot: UserModelDTO[] = [];
+      setModels((prev) => {
+        snapshot = prev;
+        return prev.map((m) => (m.id === id ? { ...m, enabled } : m));
+      });
+      try {
+        await update({ data: { id, enabled } });
+      } catch (err) {
+        setModels(snapshot);
+        throw err;
+      }
+    },
+    /**
+     * Optimistically remove a model. On failure, restores it and rethrows.
+     */
+    deleteModelOptimistic: async (id: string) => {
+      let snapshot: UserModelDTO[] = [];
+      setModels((prev) => {
+        snapshot = prev;
+        return prev.filter((m) => m.id !== id);
+      });
+      try {
+        await del({ data: { id } });
+      } catch (err) {
+        setModels(snapshot);
+        throw err;
+      }
+    },
     deleteModel: async (id: string) => {
       await del({ data: { id } });
       await refresh();
