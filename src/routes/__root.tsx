@@ -88,17 +88,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "TirthoAI is a multi-model AI chat platform — reasoning, coding, vision, and creative models in one place, with persistent chat history.",
       },
       { name: "author", content: "TirthoAI" },
+      { property: "og:site_name", content: "TirthoAI" },
       { property: "og:title", content: "TirthoAI — Multi-Model AI Workspace" },
       {
         property: "og:description",
         content: "Chat with the best AI models. Your history is saved automatically.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "TirthoAI — Multi-Model AI Workspace" },
-      { name: "description", content: "TirthoAI is a web application for AI-powered chat and content generation." },
-      { property: "og:description", content: "TirthoAI is a web application for AI-powered chat and content generation." },
-      { name: "twitter:description", content: "TirthoAI is a web application for AI-powered chat and content generation." },
+      {
+        name: "twitter:description",
+        content: "Chat with the best AI models. Your history is saved automatically.",
+      },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/45981033-c11d-47e7-aefb-dfb03e23ab90/id-preview-3463b46e--17f08b44-78f6-4ac6-bd41-1d44cfc22315.lovable.app-1780419435987.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/45981033-c11d-47e7-aefb-dfb03e23ab90/id-preview-3463b46e--17f08b44-78f6-4ac6-bd41-1d44cfc22315.lovable.app-1780419435987.png" },
     ],
@@ -106,6 +108,32 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: appCss,
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "TirthoAI",
+          url: "https://tirthoai.lovable.app",
+          potentialAction: {
+            "@type": "SearchAction",
+            target: "https://tirthoai.lovable.app/?q={search_term_string}",
+            "query-input": "required name=search_term_string",
+          },
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "TirthoAI",
+          url: "https://tirthoai.lovable.app",
+          logo: "https://tirthoai.lovable.app/favicon.ico",
+        }),
       },
     ],
   }),
