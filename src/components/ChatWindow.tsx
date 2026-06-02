@@ -363,7 +363,14 @@ export function ChatWindow({
       className="flex h-full min-h-0 flex-col bg-background"
       style={{ height: "calc(100% - var(--kb-inset, 0px))" }}
     >
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-background/80 px-3 py-2.5 backdrop-blur sm:flex-nowrap sm:px-6 sm:py-3">
+      <header
+        className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-background/80 px-3 py-2.5 backdrop-blur sm:flex-nowrap sm:px-6 sm:py-3"
+        style={{
+          paddingTop: "max(0.625rem, env(safe-area-inset-top))",
+          paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+          paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+        }}
+      >
         <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={onOpenSidebar}
