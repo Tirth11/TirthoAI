@@ -107,6 +107,12 @@ export function ChatWindow({
     let alive = true;
     setInitialMessages(null);
     persistedIdsRef.current = new Set();
+    if (guest) {
+      setInitialMessages([]);
+      return () => {
+        alive = false;
+      };
+    }
     ChatDB.listMessages(conversation.id)
       .then((msgs) => {
         if (!alive) return;
@@ -120,32 +126,50 @@ export function ChatWindow({
     return () => {
       alive = false;
     };
-  }, [conversation.id]);
+  }, [conversation.id, guest]);
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
         fetch: async (url, init) => {
-          const { data } = await supabase.auth.getSession();
-          const token = data.session?.access_token;
           const headers = new Headers(init?.headers);
-          if (token) headers.set("Authorization", `Bearer ${token}`);
+          if (guest) {
+            headers.set("x-guest-id", getGuestId());
+          } else {
+            const { data } = await supabase.auth.getSession();
+            const token = data.session?.access_token;
+            if (token) headers.set("Authorization", `Bearer ${token}`);
+          }
           const res = await fetch(url, { ...init, headers });
+          if (guest) {
+            const r = res.headers.get("x-guest-remaining");
+            if (r !== null && r !== "") {
+              const n = Number(r);
+              if (Number.isFinite(n)) setGuestRemaining(n);
+            }
+          }
           if (res.status === 402) {
-            // Parse friendly out-of-credits message
             const text = await res.clone().text();
+            let code = "";
+            let msg = "You're out of free credits.";
             try {
               const json = JSON.parse(text);
-              throw new Error(json.message ?? "You're out of free credits.");
+              code = json.error ?? "";
+              msg = json.message ?? msg;
             } catch {
-              throw new Error("You're out of free credits.");
+              /* ignore */
             }
+            if (guest || code === "out_of_guest_credits") {
+              setGuestRemaining(0);
+              setShowSignup(true);
+            }
+            throw new Error(msg);
           }
           return res;
         },
       }),
-    [],
+    [guest],
   );
 
   const { messages, sendMessage, status, stop } = useChat({
@@ -154,7 +178,7 @@ export function ChatWindow({
     transport,
     onError: (err) => toast.error(err.message || "Something went wrong"),
     onFinish: () => {
-      refreshCredits();
+      if (!guest) refreshCredits();
     },
   });
 
