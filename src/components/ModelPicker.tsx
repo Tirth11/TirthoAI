@@ -63,13 +63,41 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
             autoMode && "opacity-60 cursor-not-allowed"
           )}
         >
-          <span>{selected?.badge}</span>
-          <span className="max-w-[84px] truncate sm:max-w-[160px]">{selected?.label ?? "Select model"}</span>
+          <span>{selectedBadge}</span>
+          <span className="max-w-[84px] truncate sm:max-w-[160px]">{selectedLabel}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
 
         {open && (
           <div className="fixed inset-x-3 top-16 z-50 max-h-[70dvh] overflow-y-auto rounded-xl border border-border bg-popover p-2 shadow-2xl sm:absolute sm:inset-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 sm:max-h-[60vh]">
+            {enabledUserModels.length > 0 && (
+              <div className="mb-3">
+                <div className="flex items-center justify-between px-2 py-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    🧩 Your models
+                  </span>
+                  <Link
+                    to="/settings"
+                    onClick={() => setOpen(false)}
+                    className="text-[10px] font-semibold text-primary hover:underline"
+                  >
+                    Manage
+                  </Link>
+                </div>
+                {enabledUserModels.map((m) => (
+                  <UserModelRow
+                    key={m.id}
+                    model={m}
+                    active={modelId === `${USER_MODEL_PREFIX}${m.id}`}
+                    onPick={() => {
+                      onChange(`${USER_MODEL_PREFIX}${m.id}`);
+                      setOpen(false);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
             {categories.map((cat) => {
               const meta = CATEGORY_META[cat];
               const items = MODELS.filter((m) => m.category === cat);
@@ -79,7 +107,7 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
                     {meta.icon} {meta.label}
                   </div>
                   {items.map((m) => {
-                    const active = m.id === modelId && m.label === selected?.label;
+                    const active = m.id === modelId && m.label === selectedBuiltIn?.label;
                     return (
                       <button
                         key={m.label}
@@ -111,6 +139,17 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
                 </div>
               );
             })}
+
+            {!hideUserModels && (
+              <Link
+                to="/settings"
+                onClick={() => setOpen(false)}
+                className="mt-1 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-border px-2 py-2 text-[11px] font-medium text-muted-foreground transition hover:border-primary/50 hover:text-primary"
+              >
+                <Plus className="h-3 w-3" />
+                Add your own model
+              </Link>
+            )}
           </div>
         )}
       </div>
