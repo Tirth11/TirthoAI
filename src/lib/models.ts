@@ -1,6 +1,6 @@
 export type ModelCategory = "reasoning" | "coding" | "creative" | "vision" | "general";
 
-export type ModelProvider = "lovable" | "nvidia";
+export type ModelProvider = "lovable" | "nvidia" | "anthropic" | "perplexity";
 
 export interface ModelConfig {
   label: string;
