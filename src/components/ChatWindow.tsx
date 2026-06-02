@@ -434,7 +434,11 @@ export function ChatWindow({
             onChange={(id) => {
               setModelId(id);
               setAutoMode(false);
-              if (!guest) ChatDB.updateConversation(conversation.id, { model_id: id }).catch(console.error);
+              if (!guest) {
+                ChatDB.updateConversation(conversation.id, { model_id: id })
+                  .then(onConversationChange)
+                  .catch(console.error);
+              }
             }}
             autoMode={autoMode}
             onAutoToggle={setAutoMode}
