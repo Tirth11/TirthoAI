@@ -122,8 +122,14 @@ export function ChatWindow({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const persistedIdsRef = useRef<Set<string>>(new Set());
   const pendingPromptModelRef = useRef<string | null>(null);
+  const pendingCostRef = useRef<number | null>(null);
+  const creditsRef = useRef<number | null>(null);
   const [promptMeta, setPromptMeta] = useState<Record<string, { modelId: string; cost: number }>>({});
   const stickToBottomRef = useRef(true);
+
+  useEffect(() => {
+    creditsRef.current = credits ?? null;
+  }, [credits]);
 
   // Load messages for this conversation
   useEffect(() => {
@@ -164,12 +170,19 @@ export function ChatWindow({
             const token = data.session?.access_token;
             if (token) headers.set("Authorization", `Bearer ${token}`);
           }
+          const creditsBefore = creditsRef.current;
           const res = await fetch(url, { ...init, headers });
-          if (guest) {
-            const r = res.headers.get("x-guest-remaining");
-            if (r !== null && r !== "") {
-              const n = Number(r);
-              if (Number.isFinite(n)) setGuestRemaining(n);
+          const remainHeader = guest
+            ? res.headers.get("x-guest-remaining")
+            : res.headers.get("x-credits-remaining");
+          if (remainHeader !== null && remainHeader !== "") {
+            const remain = Number(remainHeader);
+            if (Number.isFinite(remain)) {
+              if (guest) setGuestRemaining(remain);
+              if (creditsBefore !== null) {
+                const delta = creditsBefore - remain;
+                pendingCostRef.current = delta > 0 ? delta : 0;
+              }
             }
           }
           if (res.status === 402) {
@@ -372,16 +385,19 @@ export function ChatWindow({
     await sendMessage({ text: finalText, files: fileList }, { body: { modelId: useModelId } });
   };
 
-  // Tag each new user message with the model used + credit cost (1 per prompt).
+  // Tag each new user message with the model used + actual credit cost
+  // (computed from the x-credits-remaining header, fallback to 1).
   useEffect(() => {
     const pending = pendingPromptModelRef.current;
     if (!pending) return;
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     if (lastUser && !promptMeta[lastUser.id]) {
-      setPromptMeta((prev) => ({ ...prev, [lastUser.id]: { modelId: pending, cost: 1 } }));
+      const cost = pendingCostRef.current ?? 1;
+      setPromptMeta((prev) => ({ ...prev, [lastUser.id]: { modelId: pending, cost } }));
       pendingPromptModelRef.current = null;
+      pendingCostRef.current = null;
     }
-  }, [messages, promptMeta]);
+  }, [messages, promptMeta, status]);
 
   const activeModel = getModelById(modelId);
   const cat = activeModel?.category ?? "general";
@@ -614,11 +630,22 @@ export function ChatWindow({
             <MessageBubble key={m.id} message={m} meta={promptMeta[m.id]} />
           ))}
 
-          {status === "submitted" && (
-            <div className="flex justify-end">
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary">
+          {(status === "submitted" || status === "streaming") && (
+            <div className="flex justify-end" data-testid="prompt-progress-pill" data-status={status}>
+              <div
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold",
+                  status === "streaming"
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : "border-primary/30 bg-primary/5 text-primary",
+                )}
+              >
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Sending prompt · −1 credit ·{" "}
+                {status === "submitted" ? "Sending prompt" : "Streaming response"}
+                {pendingCostRef.current !== null && (
+                  <> · −{pendingCostRef.current} credit{pendingCostRef.current === 1 ? "" : "s"}</>
+                )}
+                {" · "}
                 {getModelById(pendingPromptModelRef.current ?? modelId)?.label ?? modelId}
               </div>
             </div>
