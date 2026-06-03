@@ -881,6 +881,12 @@ function MessageBubble({
             </div>
           )}
         </div>
+        {isUser && meta && (
+          <div className="mt-1 self-end inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            <Zap className="h-2.5 w-2.5" />
+            −{meta.cost} credit · {getModelById(meta.modelId)?.label ?? meta.modelId}
+          </div>
+        )}
         {!isUser && text && (
           <button
             onClick={copy}
