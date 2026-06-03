@@ -36,19 +36,16 @@ export const MODELS: ModelConfig[] = [
   { label: "Gemini 3.1 Flash Lite", id: "google/gemini-3.1-flash-lite-preview", category: "general", badge: "🪶", description: "Cost-efficient, high volume" },
   { label: "GPT-5 Nano", id: "openai/gpt-5-nano", category: "general", badge: "⚡", description: "Quick simple tasks" },
 
-  // NVIDIA-hosted (free tier via NVIDIA Build)
+  // NVIDIA-hosted (verified live on NVIDIA Build)
   { label: "GLM 5.1", id: "z-ai/glm-5.1", provider: "nvidia", category: "reasoning", badge: "🐉", description: "Zhipu GLM 5.1 via NVIDIA" },
-  { label: "GLM 4.6", id: "z-ai/glm-4.6", provider: "nvidia", category: "general", badge: "🐲", description: "Zhipu GLM 4.6 via NVIDIA" },
-  { label: "DeepSeek V4 Flash", id: "deepseek-ai/deepseek-v4-flash", provider: "nvidia", category: "reasoning", badge: "🌊", description: "DeepSeek thinking model via NVIDIA" },
-  { label: "DeepSeek R1", id: "deepseek-ai/deepseek-r1", provider: "nvidia", category: "reasoning", badge: "🔮", description: "DeepSeek R1 reasoning via NVIDIA" },
-  { label: "Kimi K2", id: "moonshotai/kimi-k2-instruct", provider: "nvidia", category: "creative", badge: "🌙", description: "Moonshot Kimi K2 via NVIDIA" },
+  { label: "Kimi K2.6", id: "moonshotai/kimi-k2.6", provider: "nvidia", category: "creative", badge: "🌙", description: "Moonshot Kimi K2.6 via NVIDIA" },
   { label: "Llama 3.3 70B", id: "meta/llama-3.3-70b-instruct", provider: "nvidia", category: "general", badge: "🦙", description: "Meta Llama 3.3 70B via NVIDIA" },
-  { label: "Qwen 2.5 Coder 32B", id: "qwen/qwen2.5-coder-32b-instruct", provider: "nvidia", category: "coding", badge: "🧩", description: "Qwen Coder via NVIDIA" },
   { label: "Llama 4 Maverick", id: "meta/llama-4-maverick-17b-128e-instruct", provider: "nvidia", category: "general", badge: "🦅", description: "Meta Llama 4 Maverick via NVIDIA" },
-  { label: "Llama 4 Scout", id: "meta/llama-4-scout-17b-16e-instruct", provider: "nvidia", category: "reasoning", badge: "🛰️", description: "Meta Llama 4 Scout via NVIDIA" },
-  { label: "Mistral Small 3.1", id: "mistralai/mistral-small-24b-instruct", provider: "nvidia", category: "general", badge: "🌬️", description: "Mistral Small via NVIDIA" },
-  { label: "Nemotron 70B", id: "nvidia/llama-3.1-nemotron-70b-instruct", provider: "nvidia", category: "reasoning", badge: "⚙️", description: "NVIDIA Nemotron 70B" },
-  { label: "Qwen 3 235B", id: "qwen/qwen3-235b-a22b", provider: "nvidia", category: "reasoning", badge: "🧠", description: "Qwen 3 MoE via NVIDIA" },
+  { label: "Qwen3 Coder 480B", id: "qwen/qwen3-coder-480b-a35b-instruct", provider: "nvidia", category: "coding", badge: "🧩", description: "Qwen3 Coder MoE via NVIDIA" },
+  { label: "Qwen3 Next 80B", id: "qwen/qwen3-next-80b-a3b-instruct", provider: "nvidia", category: "reasoning", badge: "🧠", description: "Qwen3 Next via NVIDIA" },
+  { label: "GPT-OSS 20B", id: "openai/gpt-oss-20b", provider: "nvidia", category: "general", badge: "🔓", description: "OpenAI GPT-OSS 20B via NVIDIA" },
+  { label: "Mistral Medium 3.5", id: "mistralai/mistral-medium-3.5-128b", provider: "nvidia", category: "general", badge: "🌬️", description: "Mistral Medium 3.5 via NVIDIA" },
+  { label: "Mistral Small 4", id: "mistralai/mistral-small-4-119b-2603", provider: "nvidia", category: "general", badge: "💨", description: "Mistral Small 4 via NVIDIA" },
 ];
 
 
