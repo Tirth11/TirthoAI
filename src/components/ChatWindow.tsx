@@ -122,8 +122,14 @@ export function ChatWindow({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const persistedIdsRef = useRef<Set<string>>(new Set());
   const pendingPromptModelRef = useRef<string | null>(null);
+  const pendingCostRef = useRef<number | null>(null);
+  const creditsRef = useRef<number | null>(null);
   const [promptMeta, setPromptMeta] = useState<Record<string, { modelId: string; cost: number }>>({});
   const stickToBottomRef = useRef(true);
+
+  useEffect(() => {
+    creditsRef.current = credits ?? null;
+  }, [credits]);
 
   // Load messages for this conversation
   useEffect(() => {
