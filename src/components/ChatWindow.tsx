@@ -170,12 +170,19 @@ export function ChatWindow({
             const token = data.session?.access_token;
             if (token) headers.set("Authorization", `Bearer ${token}`);
           }
+          const creditsBefore = creditsRef.current;
           const res = await fetch(url, { ...init, headers });
-          if (guest) {
-            const r = res.headers.get("x-guest-remaining");
-            if (r !== null && r !== "") {
-              const n = Number(r);
-              if (Number.isFinite(n)) setGuestRemaining(n);
+          const remainHeader = guest
+            ? res.headers.get("x-guest-remaining")
+            : res.headers.get("x-credits-remaining");
+          if (remainHeader !== null && remainHeader !== "") {
+            const remain = Number(remainHeader);
+            if (Number.isFinite(remain)) {
+              if (guest) setGuestRemaining(remain);
+              if (creditsBefore !== null) {
+                const delta = creditsBefore - remain;
+                pendingCostRef.current = delta > 0 ? delta : 0;
+              }
             }
           }
           if (res.status === 402) {
