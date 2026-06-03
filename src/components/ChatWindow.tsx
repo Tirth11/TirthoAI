@@ -121,6 +121,8 @@ export function ChatWindow({
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const persistedIdsRef = useRef<Set<string>>(new Set());
+  const pendingPromptModelRef = useRef<string | null>(null);
+  const [promptMeta, setPromptMeta] = useState<Record<string, { modelId: string; cost: number }>>({});
   const stickToBottomRef = useRef(true);
 
   // Load messages for this conversation
@@ -366,8 +368,20 @@ export function ChatWindow({
     setAttachments([]);
     stickToBottomRef.current = true;
 
+    pendingPromptModelRef.current = useModelId;
     await sendMessage({ text: finalText, files: fileList }, { body: { modelId: useModelId } });
   };
+
+  // Tag each new user message with the model used + credit cost (1 per prompt).
+  useEffect(() => {
+    const pending = pendingPromptModelRef.current;
+    if (!pending) return;
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (lastUser && !promptMeta[lastUser.id]) {
+      setPromptMeta((prev) => ({ ...prev, [lastUser.id]: { modelId: pending, cost: 1 } }));
+      pendingPromptModelRef.current = null;
+    }
+  }, [messages, promptMeta]);
 
   const activeModel = getModelById(modelId);
   const cat = activeModel?.category ?? "general";
@@ -597,8 +611,18 @@ export function ChatWindow({
           )}
 
           {messages.map((m) => (
-            <MessageBubble key={m.id} message={m} />
+            <MessageBubble key={m.id} message={m} meta={promptMeta[m.id]} />
           ))}
+
+          {status === "submitted" && (
+            <div className="flex justify-end">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Sending prompt · −1 credit ·{" "}
+                {getModelById(pendingPromptModelRef.current ?? modelId)?.label ?? modelId}
+              </div>
+            </div>
+          )}
 
           {status === "submitted" && (
             <div className="flex gap-3">
@@ -784,7 +808,13 @@ function AttachmentChip({ file, onRemove }: { file: File; onRemove: () => void }
   );
 }
 
-function MessageBubble({ message }: { message: UIMessage }) {
+function MessageBubble({
+  message,
+  meta,
+}: {
+  message: UIMessage;
+  meta?: { modelId: string; cost: number };
+}) {
   const isUser = message.role === "user";
   const text = message.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
   const fileParts = message.parts.filter((p) => p.type === "file") as Array<{
@@ -851,6 +881,12 @@ function MessageBubble({ message }: { message: UIMessage }) {
             </div>
           )}
         </div>
+        {isUser && meta && (
+          <div className="mt-1 self-end inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            <Zap className="h-2.5 w-2.5" />
+            −{meta.cost} credit · {getModelById(meta.modelId)?.label ?? meta.modelId}
+          </div>
+        )}
         {!isUser && text && (
           <button
             onClick={copy}

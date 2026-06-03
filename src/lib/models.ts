@@ -40,7 +40,7 @@ export const MODELS: ModelConfig[] = [
   { label: "GLM 5.1", id: "z-ai/glm-5.1", provider: "nvidia", category: "reasoning", badge: "🐉", description: "Zhipu GLM 5.1 via NVIDIA" },
   { label: "Kimi K2.6", id: "moonshotai/kimi-k2.6", provider: "nvidia", category: "creative", badge: "🌙", description: "Moonshot Kimi K2.6 via NVIDIA" },
   { label: "Llama 3.3 70B", id: "meta/llama-3.3-70b-instruct", provider: "nvidia", category: "general", badge: "🦙", description: "Meta Llama 3.3 70B via NVIDIA" },
-  { label: "Llama 4 Maverick", id: "meta/llama-4-maverick-17b-128e-instruct", provider: "nvidia", category: "general", badge: "🦅", description: "Meta Llama 4 Maverick via NVIDIA" },
+  
   { label: "Qwen3 Coder 480B", id: "qwen/qwen3-coder-480b-a35b-instruct", provider: "nvidia", category: "coding", badge: "🧩", description: "Qwen3 Coder MoE via NVIDIA" },
   { label: "Qwen3 Next 80B", id: "qwen/qwen3-next-80b-a3b-instruct", provider: "nvidia", category: "reasoning", badge: "🧠", description: "Qwen3 Next via NVIDIA" },
   { label: "GPT-OSS 20B", id: "openai/gpt-oss-20b", provider: "nvidia", category: "general", badge: "🔓", description: "OpenAI GPT-OSS 20B via NVIDIA" },
