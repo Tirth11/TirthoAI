@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { Check, ChevronDown, Zap, Plus } from "lucide-react";
+import { Check, ChevronDown, Zap, Plus, AlertCircle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { MODELS, CATEGORY_META, type ModelCategory, getModelById } from "@/lib/models";
 import { USER_MODEL_PREFIX, presetFor, type UserModelDTO } from "@/lib/user-models-shared";
 import { useUserModels } from "@/hooks/use-user-models";
+import { useModelHealth } from "@/hooks/use-model-health";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -19,6 +20,7 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { models: userModels } = useUserModels();
+  const { health } = useModelHealth();
   const enabledUserModels = hideUserModels ? [] : userModels.filter((m) => m.enabled);
 
   const userMatch = modelId.startsWith(USER_MODEL_PREFIX)
