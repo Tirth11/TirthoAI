@@ -105,7 +105,11 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
 
             {categories.map((cat) => {
               const meta = CATEGORY_META[cat];
-              const items = MODELS.filter((m) => m.category === cat);
+              const items = MODELS.filter((m) => m.category === cat).filter((m) => {
+                const h = health[m.id];
+                return !h || h.ok;
+              });
+              if (items.length === 0) return null;
               return (
                 <div key={cat} className="mb-2">
                   <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -113,16 +117,17 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
                   </div>
                   {items.map((m) => {
                     const active = m.id === modelId && m.label === selectedBuiltIn?.label;
+                    const h = health[m.id];
                     return (
                       <button
                         key={m.label}
                         data-testid="model-option"
                         data-model-id={m.id}
+                        data-health={h ? (h.ok ? "ok" : "down") : "unknown"}
                         onClick={() => {
                           onChange(m.id);
                           setOpen(false);
                         }}
-
                         className={cn(
                           "flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-xs transition",
                           active ? "bg-accent" : "hover:bg-accent/60"
@@ -132,6 +137,12 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
                             <span className="font-semibold text-foreground truncate">{m.label}</span>
+                            {h?.ok && (
+                              <span
+                                className="h-1.5 w-1.5 rounded-full bg-emerald-500"
+                                title={`Healthy${h.latencyMs ? ` · ${h.latencyMs}ms` : ""}`}
+                              />
+                            )}
                             {m.supportsVision && (
                               <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-500">
                                 Vision
@@ -147,6 +158,13 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
                 </div>
               );
             })}
+
+            {Object.values(health).some((h) => !h.ok) && (
+              <div className="mb-2 flex items-start gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[10px] text-amber-600 dark:text-amber-400">
+                <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                <span>Some models are hidden — their provider failed a recent health check.</span>
+              </div>
+            )}
 
             {!hideUserModels && (
               <Link
