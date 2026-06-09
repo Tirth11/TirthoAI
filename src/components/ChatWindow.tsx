@@ -470,23 +470,26 @@ export function ChatWindow({
     }
   }, [messages, promptMeta, status]);
 
-  // Virtualized message list — keeps DOM small for very long conversations
-  // so scrolling never blocks on thousands of bubbles.
+  // Virtualized message list — ONLY for very long conversations.
+  // For short lists, virtualization adds overhead and risks zero-height
+  // measurement glitches that make the chat appear blank after a few messages.
+  const VIRTUALIZE_THRESHOLD = 50;
+  const shouldVirtualize = renderMessages.length > VIRTUALIZE_THRESHOLD;
   const rowVirtualizer = useVirtualizer({
-    count: renderMessages.length,
+    count: shouldVirtualize ? renderMessages.length : 0,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 180,
     overscan: 6,
-    measureElement: (el) => el.getBoundingClientRect().height,
     getItemKey: (i) => renderMessages[i]?.id ?? i,
   });
 
   // Smart auto-scroll for the virtualizer: jump to last item when sticking.
   useEffect(() => {
+    if (!shouldVirtualize) return;
     if (!stickToBottomRef.current) return;
     if (renderMessages.length === 0) return;
     rowVirtualizer.scrollToIndex(renderMessages.length - 1, { align: "end" });
-  }, [renderMessages.length, rowVirtualizer]);
+  }, [renderMessages.length, rowVirtualizer, shouldVirtualize]);
 
   const activeModel = getModelById(modelId);
   const cat = activeModel?.category ?? "general";
