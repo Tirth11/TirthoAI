@@ -1,6 +1,5 @@
 /// <reference lib="webworker" />
 import { marked } from "marked";
-import DOMPurify from "dompurify";
 
 type Req = { id: string; text: string };
 type Res = { id: string; html: string; error?: string };
@@ -10,8 +9,7 @@ marked.setOptions({ gfm: true, breaks: true });
 self.onmessage = (e: MessageEvent<Req>) => {
   const { id, text } = e.data ?? { id: "", text: "" };
   try {
-    const raw = marked.parse(text ?? "", { async: false }) as string;
-    const html = DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
+    const html = marked.parse(text ?? "", { async: false }) as string;
     (self as unknown as Worker).postMessage({ id, html } satisfies Res);
   } catch (err) {
     (self as unknown as Worker).postMessage({
