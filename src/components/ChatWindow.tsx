@@ -922,21 +922,22 @@ const AssistantMarkdown = memo(function AssistantMarkdown({
   useEffect(() => {
     if (tooLarge) return;
     let cancelled = false;
-    let supersededHtml: string | null = null;
     renderMarkdown(bubbleId, deferred).then((result) => {
       if (cancelled) return;
       // renderMarkdown resolves stale requests with "" — keep prior HTML in that case.
-      if (result === "" && deferred.length > 0) {
-        supersededHtml = result;
-        return;
-      }
+      if (result === "" && deferred.length > 0) return;
       setHtml(result);
     });
     return () => {
       cancelled = true;
-      void supersededHtml;
     };
   }, [bubbleId, deferred, tooLarge]);
+
+  // When the bubble unmounts (virtualizer scroll-off, conversation switch),
+  // drop any pending worker request for this bubble.
+  useEffect(() => {
+    return () => cancelMarkdown(bubbleId);
+  }, [bubbleId]);
 
   if (tooLarge) {
     return (
