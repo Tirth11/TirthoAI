@@ -220,6 +220,46 @@ export function ChatWindow({
 
   const isLoading = status === "submitted" || status === "streaming";
 
+  // Streaming backpressure: coalesce token-by-token updates into ≤1 paint per frame
+  // (and not more often than ~80ms) so the render path can't saturate the main thread.
+  const [renderMessages, setRenderMessages] = useState<UIMessage[]>(messages);
+  const lastFlushAtRef = useRef(0);
+  const rafIdRef = useRef<number | null>(null);
+  const latestMessagesRef = useRef(messages);
+  useEffect(() => {
+    latestMessagesRef.current = messages;
+    if (status !== "streaming") {
+      // Idle / submitted / error / done — flush immediately so the final text shows.
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      setRenderMessages(messages);
+      lastFlushAtRef.current = performance.now();
+      return;
+    }
+    if (rafIdRef.current !== null) return;
+    const MIN_INTERVAL = 80;
+    const tick = () => {
+      rafIdRef.current = null;
+      const now = performance.now();
+      const wait = MIN_INTERVAL - (now - lastFlushAtRef.current);
+      if (wait > 0) {
+        rafIdRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      lastFlushAtRef.current = now;
+      setRenderMessages(latestMessagesRef.current);
+    };
+    rafIdRef.current = requestAnimationFrame(tick);
+  }, [messages, status]);
+  useEffect(
+    () => () => {
+      if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
+    },
+    [],
+  );
+
   // Persist new messages when streaming finishes
   useEffect(() => {
     if (status !== "ready" || guest) return;
