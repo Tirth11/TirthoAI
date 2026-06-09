@@ -666,7 +666,7 @@ export function ChatWindow({
             </div>
           )}
 
-          {messages.map((m) => (
+          {renderMessages.map((m) => (
             <MessageBubble key={m.id} message={m} meta={promptMeta[m.id]} />
           ))}
 
