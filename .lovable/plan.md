@@ -1,77 +1,47 @@
-## Goal
+# Keep the UI responsive on huge model responses
 
-1. The preview never shows a blank white screen — even during the first Vite dependency-optimization reload, the user sees a branded loading state.
-2. The chat UI feels more friendly: clearer empty state, friendlier copy, smoother visual polish, and small usability fixes (better keyboard hints, mobile-friendly sidebar, nicer toasts/confirm).
+Two changes, both contained to the chat surface. No backend or schema changes.
 
-## 1. Pre-hydration splash (the "never blank" fix)
+## 1. Markdown in a Web Worker
 
-The blank period happens before React hydrates — neither the route loader nor the React loading spinners can run yet. The only thing that's live is the static HTML the server sends.
+Move the heavy work (markdown → HTML + sanitization) off the main thread so a 50KB assistant reply can't block input, scrolling, or the stop button.
 
-Approach: render the splash directly inside `<body>` in `src/routes/__root.tsx`'s `RootShell` as an inline element with id `boot-splash`, sitting next to `{children}`. A tiny inline `<style>` and an inline `<script>` (also in the shell) handle:
+- New file `src/workers/markdown.worker.ts`
+  - Uses `marked` (fast, streaming-friendly) for parse and `dompurify` for sanitization.
+  - Message protocol: `{ id, text }` in → `{ id, html }` out. `id` lets us drop stale results when newer text arrives for the same bubble.
+- New file `src/lib/markdown-client.ts`
+  - Lazily spins up a single shared worker via `new Worker(new URL("../workers/markdown.worker.ts", import.meta.url), { type: "module" })`.
+  - Exposes `renderMarkdown(bubbleId, text): Promise<string>` that resolves with sanitized HTML, ignoring superseded requests per `bubbleId`.
+  - SSR-safe: no-op fallback when `window`/`Worker` is undefined; in that case returns the raw text and lets the existing `ReactMarkdown` path render on the client after hydration.
+- Replace `<ReactMarkdown>` in `AssistantMarkdown` (in `src/components/ChatWindow.tsx`) with a small component that:
+  - Calls `renderMarkdown(message.id, deferredText)` inside an effect.
+  - Stores the last successful HTML in state and renders it with `dangerouslySetInnerHTML` (safe — DOMPurify ran in the worker).
+  - Keeps showing the previous HTML while the next chunk is parsing, so the bubble never flashes empty.
+- Remove the `react-markdown` import from `ChatWindow.tsx` once the worker path is wired. Keep the package installed in case other components use it; remove only if grep confirms no other call sites.
 
-- Visible immediately, even before any JS is parsed.
-- Smoothly fades out and is removed from the DOM the first time React commits real content (detected via a `MutationObserver` on the body, or a `requestIdleCallback` fallback that hides it once the root has rendered children).
-- Honors the user's theme: reads `localStorage["tirthoai-theme"]` and/or `prefers-color-scheme` so the splash background matches the app's background (no light/dark flash).
+## 2. Streaming backpressure + chunked rendering
 
-What the splash shows:
-- Centered TirthoAI logo mark (a CSS-only gradient square with a sparkle SVG inlined — no external assets, no font loading).
-- "TirthoAI" wordmark and a soft "Loading your workspace…" subtitle.
-- A subtle animated gradient bar / pulsing dot so it feels alive instead of frozen.
-- All styled with inline CSS variables that match the app palette so it visually continues into the real UI.
+Right now every streamed token triggers a React render of the active bubble and a worker re-parse. On long replies that's thousands of renders. We coalesce.
 
-Also tighten the in-app loading states so the handoff is seamless:
-- The auth-loading and conversation-loading screens already use `Loader2`; upgrade them to the same branded "logo + label + shimmer" treatment so the transition from splash → app feels continuous.
-- A new `<BrandedLoader label="…"/>` component in `src/components/BrandedLoader.tsx` is reused by both the auth gate and the chat hydration state.
+- In `ChatWindow.tsx`, derive a `renderMessages` view of `messages` that the list maps over, instead of mapping `messages` directly.
+- While `status === "streaming"`, throttle updates to the last (assistant) message using `requestAnimationFrame` + a minimum interval (e.g. 80ms):
+  - Keep a ref with the latest streamed text from `useChat`.
+  - A rAF loop flushes that text into `renderMessages` state at most once per frame and not more often than the interval.
+  - When `status` flips back to `ready`/`error`/aborted, flush immediately so the final text is never truncated.
+- The worker call inside `AssistantMarkdown` then naturally fires at the throttled cadence, not per token.
+- Sidebar/scroll-to-bottom logic uses the same throttled signal so autoscroll doesn't fight the rAF loop.
+- Hard ceiling: if a single message exceeds ~200KB of text, switch that bubble to a plain `<pre className="whitespace-pre-wrap">` fallback (no markdown parsing) and show a small "Rendering as plain text — response too large for rich formatting" note. Prevents pathological inputs from ever hanging the worker queue.
 
-## 2. UI friendliness pass
+## Verification
 
-Small, focused improvements — no behavior changes to chat/auth logic.
+- Unit: extend `src/lib/__tests__/model-indicator.test.tsx` style with a new `markdown-client.test.ts` that mocks `Worker` and asserts stale-request cancellation per `bubbleId`.
+- Manual: paste a long markdown doc (e.g. a 30KB README) into a prompt, confirm input stays responsive, stop button cancels within a frame, and the final rendered HTML matches what `react-markdown` produced before.
+- Performance check via `browser--performance_profile` on a long-streamed reply: main-thread long tasks during streaming should drop substantially vs. the current build.
 
-### Auth screen (`src/components/AuthScreen.tsx`)
-- Add a one-line tagline under "TirthoAI" ("Your multi-model AI workspace").
-- Show inline validation messages instead of relying only on toasts for the most common cases (empty fields, password too short).
-- Add a "Show password" eye toggle.
-- Add a "Forgot password?" link that triggers `supabase.auth.resetPasswordForEmail`.
-- Slightly larger touch targets and clearer focus rings.
+## Technical details
 
-### Sidebar (`src/components/Sidebar.tsx`)
-- Collapsible on mobile: a hamburger button in the chat header opens/closes the sidebar as a slide-in drawer below the `md` breakpoint; on desktop it stays as the fixed left column.
-- Replace the native `confirm("Delete this conversation?")` with a small inline confirm (two-step: trash icon turns red and asks "Sure?") — feels much nicer than a browser dialog.
-- Group conversations by recency (Today / Yesterday / Previous 7 days / Older).
-- Search box at the top of the list (client-side filter on title).
-- Active conversation gets a small gradient accent bar on the left edge.
-
-### Chat window (`src/components/ChatWindow.tsx`)
-- Friendlier empty state: greet by first name if available ("Hey there 👋"), and keep the suggestion grid but make each card show the matching model category icon/color it would trigger.
-- Add keyboard hint chip in the composer ("⌘/Ctrl+Enter to send · Shift+Enter for newline") and actually support Cmd/Ctrl+Enter.
-- Copy-to-clipboard button on each assistant message bubble (and on every code block via a small react-markdown component override).
-- Smooth auto-scroll only when the user is already near the bottom (don't yank them up if they scrolled to read earlier messages).
-- Stop-generation button visible while `status === "streaming"` (wires `useChat`'s `stop`).
-- Better attachment chips: image attachments show a small thumbnail preview.
-- Replace the model-category pill text with a tooltip explaining what that category is good for.
-
-### Global polish
-- Configure `Toaster` once at the root level with branded colors, instead of duplicating it in every screen.
-- Add a tiny `<title>` updater that prepends the active conversation title (`"Acme plan — TirthoAI"`).
-- Add an `aria-live="polite"` region for streaming status for screen readers.
-
-## Technical notes
-
-- All new code stays client-side and TypeScript-strict; no new dependencies (we reuse `lucide-react`, `sonner`, `react-markdown`).
-- Splash markup/script lives inline in `__root.tsx` so it survives any hydration error and works on the very first byte the browser receives.
-- Splash is removed (not just hidden) after fade-out so it never intercepts clicks.
-- Theme detection in the splash mirrors the logic in `src/hooks/use-theme.ts` (same `localStorage` key) to prevent the dark→light flash users see today.
-- No changes to auth, DB schema, server functions, or the AI gateway.
-
-## Files
-
-New
-- `src/components/BrandedLoader.tsx`
-
-Edited
-- `src/routes/__root.tsx` — inline splash markup, style, and remove-on-mount script; mount a single `Toaster`.
-- `src/routes/index.tsx` — use `BrandedLoader`; pass user's display name to chat.
-- `src/components/AuthScreen.tsx` — inline validation, show-password, forgot-password, tagline.
-- `src/components/Sidebar.tsx` — mobile drawer, grouped+searchable list, inline delete confirm.
-- `src/components/ChatWindow.tsx` — friendlier empty state, copy buttons, smart auto-scroll, stop button, image thumbnails, keyboard hints, a11y live region.
-- `src/styles.css` — a couple of small utility classes for the splash fade and the gradient accent bar.
+- Packages to add: `marked`, `dompurify`, `@types/dompurify` (dev). All bundle-safe; the worker is built by Vite as a separate chunk.
+- Worker uses `marked.parse(text, { async: false, gfm: true, breaks: true })` then `DOMPurify.sanitize(html, { USE_PROFILES: { html: true } })`.
+- The worker runs in the browser only — Cloudflare Worker SSR is unaffected. The worker file must not import anything Node-only.
+- `dangerouslySetInnerHTML` is acceptable here because every string passed to it has been through DOMPurify on the same render path; no other component should adopt this pattern without the same guarantee.
+- `useDeferredValue` stays in place as a second line of defense for the rare frame where the worker result lands during a high-priority update.

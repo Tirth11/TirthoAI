@@ -1,7 +1,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState, memo, useDeferredValue } from "react";
-import ReactMarkdown from "react-markdown";
+import { renderMarkdown } from "@/lib/markdown-client";
 import {
   Send,
   Sparkles,
@@ -220,6 +220,46 @@ export function ChatWindow({
 
   const isLoading = status === "submitted" || status === "streaming";
 
+  // Streaming backpressure: coalesce token-by-token updates into ≤1 paint per frame
+  // (and not more often than ~80ms) so the render path can't saturate the main thread.
+  const [renderMessages, setRenderMessages] = useState<UIMessage[]>(messages);
+  const lastFlushAtRef = useRef(0);
+  const rafIdRef = useRef<number | null>(null);
+  const latestMessagesRef = useRef(messages);
+  useEffect(() => {
+    latestMessagesRef.current = messages;
+    if (status !== "streaming") {
+      // Idle / submitted / error / done — flush immediately so the final text shows.
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      setRenderMessages(messages);
+      lastFlushAtRef.current = performance.now();
+      return;
+    }
+    if (rafIdRef.current !== null) return;
+    const MIN_INTERVAL = 80;
+    const tick = () => {
+      rafIdRef.current = null;
+      const now = performance.now();
+      const wait = MIN_INTERVAL - (now - lastFlushAtRef.current);
+      if (wait > 0) {
+        rafIdRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      lastFlushAtRef.current = now;
+      setRenderMessages(latestMessagesRef.current);
+    };
+    rafIdRef.current = requestAnimationFrame(tick);
+  }, [messages, status]);
+  useEffect(
+    () => () => {
+      if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
+    },
+    [],
+  );
+
   // Persist new messages when streaming finishes
   useEffect(() => {
     if (status !== "ready" || guest) return;
@@ -255,7 +295,7 @@ export function ChatWindow({
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [messages, status]);
+  }, [renderMessages, status]);
 
   // Mobile keyboard handling: track visualViewport so the input stays above
   // the on-screen keyboard, and keep the latest message in view when it opens.
@@ -626,7 +666,7 @@ export function ChatWindow({
             </div>
           )}
 
-          {messages.map((m) => (
+          {renderMessages.map((m) => (
             <MessageBubble key={m.id} message={m} meta={promptMeta[m.id]} />
           ))}
 
@@ -835,9 +875,53 @@ function AttachmentChip({ file, onRemove }: { file: File; onRemove: () => void }
   );
 }
 
-const AssistantMarkdown = memo(function AssistantMarkdown({ text }: { text: string }) {
+const MAX_RICH_MARKDOWN_BYTES = 200_000;
+
+const AssistantMarkdown = memo(function AssistantMarkdown({
+  bubbleId,
+  text,
+}: {
+  bubbleId: string;
+  text: string;
+}) {
   const deferred = useDeferredValue(text);
-  return <ReactMarkdown>{deferred || "…"}</ReactMarkdown>;
+  const [html, setHtml] = useState<string>("");
+  const tooLarge = deferred.length > MAX_RICH_MARKDOWN_BYTES;
+
+  useEffect(() => {
+    if (tooLarge) return;
+    let cancelled = false;
+    let supersededHtml: string | null = null;
+    renderMarkdown(bubbleId, deferred).then((result) => {
+      if (cancelled) return;
+      // renderMarkdown resolves stale requests with "" — keep prior HTML in that case.
+      if (result === "" && deferred.length > 0) {
+        supersededHtml = result;
+        return;
+      }
+      setHtml(result);
+    });
+    return () => {
+      cancelled = true;
+      void supersededHtml;
+    };
+  }, [bubbleId, deferred, tooLarge]);
+
+  if (tooLarge) {
+    return (
+      <div>
+        <div className="mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+          Rendering as plain text — response too large for rich formatting.
+        </div>
+        <pre className="whitespace-pre-wrap break-words text-sm">{deferred}</pre>
+      </div>
+    );
+  }
+
+  if (!html) {
+    return <p className="whitespace-pre-wrap break-words">{deferred || "…"}</p>;
+  }
+  return <div dangerouslySetInnerHTML={{ __html: html }} />;
 });
 
 const MessageBubble = memo(function MessageBubble({
@@ -917,7 +1001,7 @@ const MessageBubble = memo(function MessageBubble({
             <p className="whitespace-pre-wrap break-words">{text}</p>
           ) : (
             <div className="prose prose-sm dark:prose-invert max-w-none break-words prose-pre:overflow-x-auto prose-pre:bg-muted prose-pre:text-foreground prose-code:before:content-none prose-code:after:content-none prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5">
-              <AssistantMarkdown text={text} />
+              <AssistantMarkdown bubbleId={message.id} text={text} />
             </div>
           )}
         </div>
