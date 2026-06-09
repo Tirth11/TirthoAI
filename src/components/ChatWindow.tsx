@@ -875,9 +875,53 @@ function AttachmentChip({ file, onRemove }: { file: File; onRemove: () => void }
   );
 }
 
-const AssistantMarkdown = memo(function AssistantMarkdown({ text }: { text: string }) {
+const MAX_RICH_MARKDOWN_BYTES = 200_000;
+
+const AssistantMarkdown = memo(function AssistantMarkdown({
+  bubbleId,
+  text,
+}: {
+  bubbleId: string;
+  text: string;
+}) {
   const deferred = useDeferredValue(text);
-  return <ReactMarkdown>{deferred || "…"}</ReactMarkdown>;
+  const [html, setHtml] = useState<string>("");
+  const tooLarge = deferred.length > MAX_RICH_MARKDOWN_BYTES;
+
+  useEffect(() => {
+    if (tooLarge) return;
+    let cancelled = false;
+    let supersededHtml: string | null = null;
+    renderMarkdown(bubbleId, deferred).then((result) => {
+      if (cancelled) return;
+      // renderMarkdown resolves stale requests with "" — keep prior HTML in that case.
+      if (result === "" && deferred.length > 0) {
+        supersededHtml = result;
+        return;
+      }
+      setHtml(result);
+    });
+    return () => {
+      cancelled = true;
+      void supersededHtml;
+    };
+  }, [bubbleId, deferred, tooLarge]);
+
+  if (tooLarge) {
+    return (
+      <div>
+        <div className="mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+          Rendering as plain text — response too large for rich formatting.
+        </div>
+        <pre className="whitespace-pre-wrap break-words text-sm">{deferred}</pre>
+      </div>
+    );
+  }
+
+  if (!html) {
+    return <p className="whitespace-pre-wrap break-words">{deferred || "…"}</p>;
+  }
+  return <div dangerouslySetInnerHTML={{ __html: html }} />;
 });
 
 const MessageBubble = memo(function MessageBubble({
