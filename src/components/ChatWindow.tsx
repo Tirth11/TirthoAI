@@ -1,6 +1,6 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, memo, useDeferredValue } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   Send,
@@ -835,7 +835,12 @@ function AttachmentChip({ file, onRemove }: { file: File; onRemove: () => void }
   );
 }
 
-function MessageBubble({
+const AssistantMarkdown = memo(function AssistantMarkdown({ text }: { text: string }) {
+  const deferred = useDeferredValue(text);
+  return <ReactMarkdown>{deferred || "…"}</ReactMarkdown>;
+});
+
+const MessageBubble = memo(function MessageBubble({
   message,
   meta,
 }: {
@@ -843,13 +848,20 @@ function MessageBubble({
   meta?: { modelId: string; cost: number };
 }) {
   const isUser = message.role === "user";
-  const text = message.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
-  const fileParts = message.parts.filter((p) => p.type === "file") as Array<{
-    type: "file";
-    mediaType?: string;
-    url?: string;
-    filename?: string;
-  }>;
+  const text = useMemo(
+    () => message.parts.map((p) => (p.type === "text" ? p.text : "")).join(""),
+    [message.parts],
+  );
+  const fileParts = useMemo(
+    () =>
+      message.parts.filter((p) => p.type === "file") as Array<{
+        type: "file";
+        mediaType?: string;
+        url?: string;
+        filename?: string;
+      }>,
+    [message.parts],
+  );
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -891,6 +903,7 @@ function MessageBubble({
                     src={p.url}
                     alt={`Chat image attachment${p.filename ? `: ${p.filename.replace(/\.[^.]+$/, "")}` : ""}`}
                     className="max-h-48 rounded-lg border border-border/30"
+                    loading="lazy"
                   />
                 ) : (
                   <div key={i} className="rounded-lg bg-background/20 px-2 py-1 text-xs">
@@ -901,10 +914,10 @@ function MessageBubble({
             </div>
           )}
           {isUser ? (
-            <p className="whitespace-pre-wrap">{text}</p>
+            <p className="whitespace-pre-wrap break-words">{text}</p>
           ) : (
-            <div className="prose prose-sm dark:prose-invert max-w-none prose-pre:bg-muted prose-pre:text-foreground prose-code:before:content-none prose-code:after:content-none prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5">
-              <ReactMarkdown>{text || "…"}</ReactMarkdown>
+            <div className="prose prose-sm dark:prose-invert max-w-none break-words prose-pre:overflow-x-auto prose-pre:bg-muted prose-pre:text-foreground prose-code:before:content-none prose-code:after:content-none prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5">
+              <AssistantMarkdown text={text} />
             </div>
           )}
         </div>
@@ -934,4 +947,6 @@ function MessageBubble({
       </div>
     </div>
   );
-}
+}, (prev, next) => prev.message === next.message && prev.meta === next.meta);
+
+export {};
