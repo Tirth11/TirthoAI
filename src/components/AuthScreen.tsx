@@ -62,15 +62,28 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
       setResendCooldown(60);
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Couldn't resend verification email";
+      const status = (err as { status?: number })?.status;
       const lower = raw.toLowerCase();
       let friendly = raw;
-      if (/rate.?limit|too many|for security/i.test(lower)) {
-        friendly = "Please wait a minute before requesting another verification email.";
+      // Supabase often returns: "For security purposes, you can only request this after N seconds."
+      const secMatch = raw.match(/after\s+(\d+)\s*seconds?/i);
+      if (secMatch) {
+        const secs = Math.max(1, parseInt(secMatch[1], 10));
+        friendly = `Please wait ${secs}s before requesting another verification email.`;
+        setResendCooldown(secs);
+      } else if (status === 429 || /rate.?limit|too many|for security/i.test(lower)) {
+        friendly = "You're sending verification emails too quickly. Please wait a minute and try again.";
         setResendCooldown(60);
       } else if (/already.*confirmed|already.*verified/i.test(lower)) {
         friendly = "This email is already verified — try signing in.";
+        setShowResend(false);
+      } else if (/network|fetch.*failed|load failed|timeout/i.test(lower)) {
+        friendly = "We couldn't reach the server. Check your connection and try again.";
+      } else if (/invalid.*email|not.*found|user.*not/i.test(lower)) {
+        friendly = "We couldn't find an account for that email. Double-check the address.";
       }
       toast.error(friendly);
+      setSubmitError(friendly);
     } finally {
       setResending(false);
     }
