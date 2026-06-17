@@ -975,6 +975,17 @@ export function ChatWindow({
       </div>
     </div>
 
+      {!guest && (
+        <CompareDialog
+          open={showCompare}
+          onClose={() => setShowCompare(false)}
+          prompt={input}
+          history={messages}
+        />
+      )}
+
+
+
       {guest && (
         <SignupPrompt
           open={showSignup}
