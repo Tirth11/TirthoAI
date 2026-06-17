@@ -84,6 +84,7 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
     setSubmitError(null);
     setSubmitErrorHint(null);
     setNotice(null);
+    setShowResend(false);
     if (!validate()) return;
     setLoading(true);
     try {
