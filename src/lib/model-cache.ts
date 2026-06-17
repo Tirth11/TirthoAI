@@ -87,6 +87,8 @@ function write(c: Stored) {
   }
 }
 
+const LAST_MODEL_KEY = "tirthoai.last-model.v1";
+
 export const ModelCache = {
   get(threadId: string): ThreadModelEntry | undefined {
     return read().threads[threadId];
@@ -101,13 +103,41 @@ export const ModelCache = {
         prev && prev.modelId && prev.modelId !== modelId ? prev.modelId : prev?.previousModelId,
     };
     write(c);
+    // Track globally as the "last picked" model so a brand-new conversation
+    // inherits the agent the user just chose.
+    if (typeof window !== "undefined" && isKnownModel(modelId)) {
+      try {
+        localStorage.setItem(LAST_MODEL_KEY, modelId);
+      } catch {
+        /* ignore quota */
+      }
+    }
   },
   remove(threadId: string) {
     const c = read();
     delete c.threads[threadId];
     write(c);
   },
+  /** Last model the user picked anywhere in the app. Survives reloads. */
+  getLast(): string | undefined {
+    if (typeof window === "undefined") return undefined;
+    try {
+      const id = localStorage.getItem(LAST_MODEL_KEY) ?? undefined;
+      return isKnownModel(id ?? undefined) ? (id ?? undefined) : undefined;
+    } catch {
+      return undefined;
+    }
+  },
+  setLast(modelId: string) {
+    if (typeof window === "undefined" || !isKnownModel(modelId)) return;
+    try {
+      localStorage.setItem(LAST_MODEL_KEY, modelId);
+    } catch {
+      /* ignore quota */
+    }
+  },
   /** Exposed for diagnostics / tests. */
   _signature: MODELS_SCHEMA_SIGNATURE,
   _modelCount: MODELS.length,
 };
+
