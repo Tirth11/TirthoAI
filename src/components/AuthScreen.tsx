@@ -116,10 +116,15 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
       });
 
       toast.error(friendly);
-      // Keep the inline notice/error in sync with the toast so the UI state
-      // never drifts (button stays visible + disabled state matches cooldown).
-      setSubmitError(friendly);
-      setShowResend(true);
+      // Keep the inline message in sync with the toast without duplicating
+      // the resend button. If a notice (verification prompt) is already
+      // visible, update it; otherwise surface a fresh submitError.
+      if (notice) {
+        setNotice(friendly);
+      } else {
+        setSubmitError(friendly);
+      }
+      setShowResend(category !== "already_verified");
     } finally {
       setResending(false);
     }
