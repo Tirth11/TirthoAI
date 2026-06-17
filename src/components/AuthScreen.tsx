@@ -48,6 +48,8 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
+    setSubmitErrorHint(null);
+    setNotice(null);
     if (!validate()) return;
     setLoading(true);
     try {
@@ -64,11 +66,20 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
         if (error) throw error;
         const { data: sess } = await supabase.auth.getSession();
         if (!sess.session) {
+          // Either email confirmation is required, or auto sign-in failed.
           const { error: signInErr } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
-          if (signInErr) throw signInErr;
+          if (signInErr) {
+            // Most likely cause: project requires email verification.
+            setNotice(
+              `We sent a verification email to ${email}. Open it and click the link to activate your account, then sign in.`,
+            );
+            toast.success("Check your inbox to verify your email");
+            setMode("signin");
+            return;
+          }
         }
         toast.success("Welcome! 500 free credits added to your account 🎉");
       } else {
@@ -77,27 +88,49 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
         toast.success("Welcome back!");
       }
     } catch (err) {
-      // Surface the raw Supabase error in the UI so the user can see exactly
-      // why signup/signin failed, plus a friendly toast on top.
       const raw = err instanceof Error ? err.message : "Authentication failed";
       const status = (err as { status?: number })?.status;
-      const code = (err as { code?: string })?.code;
-      const detail = [code, status].filter(Boolean).join(" · ");
-      setSubmitError(detail ? `${raw} (${detail})` : raw);
+      const code = (err as { code?: string })?.code ?? "";
+      const lower = `${raw} ${code}`.toLowerCase();
 
-      let msg = raw;
-      if (/pwned|leaked|compromis|weak.*password|too.*weak/i.test(raw)) {
-        msg = "This password has been found in a data breach. Please choose a stronger, unique password.";
-      } else if (/password.*should be at least|at least 8|minimum.*length/i.test(raw)) {
-        msg = "Password must be at least 8 characters.";
-      } else if (/already registered|already.*exists|user.*exists/i.test(raw)) {
-        msg = "An account with this email already exists. Try signing in instead.";
+      let friendly = raw;
+      let hint: string | null = null;
+
+      if (/invalid.*credentials|invalid login|wrong password|bad password/i.test(lower)) {
+        friendly = "That email and password don't match.";
+        hint = "Double-check your password, or use 'Forgot password?' to reset it.";
+      } else if (/email.*not.*confirmed|not.*verified|confirm.*email/i.test(lower)) {
+        friendly = "Your email address isn't verified yet.";
+        hint = `Check ${email || "your inbox"} for the verification link we sent during signup.`;
+      } else if (/already.*registered|already.*exists|user.*exists|duplicate/i.test(lower)) {
+        friendly = "An account with this email already exists.";
+        hint = "Try signing in instead, or use 'Forgot password?' if you don't remember it.";
+      } else if (/pwned|leaked|compromis|weak.*password|too.*weak/i.test(lower)) {
+        friendly = "That password has appeared in a known data breach.";
+        hint = "Choose a stronger, unique password (mix letters, numbers, and symbols).";
+      } else if (/password.*should be at least|at least 8|minimum.*length/i.test(lower)) {
+        friendly = "Your password is too short.";
+        hint = "Use at least 8 characters.";
+      } else if (/rate.?limit|too many|temporarily/i.test(lower) || status === 429) {
+        friendly = "Too many attempts — please wait a minute and try again.";
+      } else if (/network|fetch.*failed|load failed|timeout/i.test(lower)) {
+        friendly = "We couldn't reach the server.";
+        hint = "Check your internet connection and try again.";
+      } else if (/invalid.*email/i.test(lower)) {
+        friendly = "That email address looks invalid.";
+        hint = "Double-check for typos.";
+      } else if (/signup.*disabled|signups.*not.*allowed/i.test(lower)) {
+        friendly = "New signups are temporarily disabled.";
       }
-      toast.error(msg);
+
+      setSubmitError(friendly);
+      setSubmitErrorHint(hint);
+      toast.error(friendly);
     } finally {
       setLoading(false);
     }
   };
+
 
 
 
