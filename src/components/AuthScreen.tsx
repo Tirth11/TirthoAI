@@ -313,6 +313,18 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
               >
                 <div className="mb-0.5 font-semibold text-primary">Verify your email</div>
                 <div className="leading-snug">{notice}</div>
+                {showResend && (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resending}
+                    data-testid="resend-verification-btn"
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/15 disabled:opacity-60"
+                  >
+                    {resending && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {resending ? "Resending…" : "Resend verification email"}
+                  </button>
+                )}
               </div>
             )}
 
@@ -327,6 +339,18 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
                 <div className="leading-snug">{submitError}</div>
                 {submitErrorHint && (
                   <div className="mt-1 text-[11px] text-destructive/80">{submitErrorHint}</div>
+                )}
+                {showResend && (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resending}
+                    data-testid="resend-verification-btn"
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1 text-[11px] font-semibold text-destructive hover:bg-destructive/15 disabled:opacity-60"
+                  >
+                    {resending && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {resending ? "Resending…" : "Resend verification email"}
+                  </button>
                 )}
               </div>
             )}
