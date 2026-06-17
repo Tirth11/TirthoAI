@@ -27,6 +27,40 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitErrorHint, setSubmitErrorHint] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [showResend, setShowResend] = useState(false);
+  const [resending, setResending] = useState(false);
+
+  const handleResendVerification = async () => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Enter your email above first, then tap Resend.");
+      return;
+    }
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/` },
+      });
+      if (error) throw error;
+      toast.success(`Verification email re-sent to ${email}`);
+      setNotice(
+        `We re-sent the verification email to ${email}. Check your inbox (and spam folder), click the link, then sign in.`,
+      );
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "Couldn't resend verification email";
+      const lower = raw.toLowerCase();
+      let friendly = raw;
+      if (/rate.?limit|too many|for security/i.test(lower)) {
+        friendly = "Please wait a minute before requesting another verification email.";
+      } else if (/already.*confirmed|already.*verified/i.test(lower)) {
+        friendly = "This email is already verified — try signing in.";
+      }
+      toast.error(friendly);
+    } finally {
+      setResending(false);
+    }
+  };
 
 
 
@@ -50,6 +84,7 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
     setSubmitError(null);
     setSubmitErrorHint(null);
     setNotice(null);
+    setShowResend(false);
     if (!validate()) return;
     setLoading(true);
     try {
@@ -74,8 +109,9 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
           if (signInErr) {
             // Most likely cause: project requires email verification.
             setNotice(
-              `We sent a verification email to ${email}. Open it and click the link to activate your account, then sign in.`,
+              `We sent a verification email to ${email}. Open it and click the link to activate your account, then sign in. Didn't get it? Check spam, or tap "Resend verification email" below.`,
             );
+            setShowResend(true);
             toast.success("Check your inbox to verify your email");
             setMode("signin");
             return;
@@ -101,7 +137,8 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
         hint = "Double-check your password, or use 'Forgot password?' to reset it.";
       } else if (/email.*not.*confirmed|not.*verified|confirm.*email/i.test(lower)) {
         friendly = "Your email address isn't verified yet.";
-        hint = `Check ${email || "your inbox"} for the verification link we sent during signup.`;
+        hint = `Check ${email || "your inbox"} for the verification link, or tap "Resend verification email" below.`;
+        setShowResend(true);
       } else if (/already.*registered|already.*exists|user.*exists|duplicate/i.test(lower)) {
         friendly = "An account with this email already exists.";
         hint = "Try signing in instead, or use 'Forgot password?' if you don't remember it.";
@@ -276,6 +313,18 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
               >
                 <div className="mb-0.5 font-semibold text-primary">Verify your email</div>
                 <div className="leading-snug">{notice}</div>
+                {showResend && (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resending}
+                    data-testid="resend-verification-btn"
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/15 disabled:opacity-60"
+                  >
+                    {resending && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {resending ? "Resending…" : "Resend verification email"}
+                  </button>
+                )}
               </div>
             )}
 
@@ -290,6 +339,18 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
                 <div className="leading-snug">{submitError}</div>
                 {submitErrorHint && (
                   <div className="mt-1 text-[11px] text-destructive/80">{submitErrorHint}</div>
+                )}
+                {showResend && (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resending}
+                    data-testid="resend-verification-btn"
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1 text-[11px] font-semibold text-destructive hover:bg-destructive/15 disabled:opacity-60"
+                  >
+                    {resending && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {resending ? "Resending…" : "Resend verification email"}
+                  </button>
                 )}
               </div>
             )}
