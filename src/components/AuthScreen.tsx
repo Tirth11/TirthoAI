@@ -63,27 +63,59 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Couldn't resend verification email";
       const status = (err as { status?: number })?.status;
+      const code = (err as { code?: string })?.code;
+      const name = (err as { name?: string })?.name;
       const lower = raw.toLowerCase();
       let friendly = raw;
-      // Supabase often returns: "For security purposes, you can only request this after N seconds."
+      let category: "rate_limit" | "already_verified" | "network" | "invalid_email" | "unknown" = "unknown";
+
       const secMatch = raw.match(/after\s+(\d+)\s*seconds?/i);
       if (secMatch) {
         const secs = Math.max(1, parseInt(secMatch[1], 10));
         friendly = `Please wait ${secs}s before requesting another verification email.`;
         setResendCooldown(secs);
+        category = "rate_limit";
       } else if (status === 429 || /rate.?limit|too many|for security/i.test(lower)) {
         friendly = "You're sending verification emails too quickly. Please wait a minute and try again.";
         setResendCooldown(60);
+        category = "rate_limit";
       } else if (/already.*confirmed|already.*verified/i.test(lower)) {
         friendly = "This email is already verified — try signing in.";
         setShowResend(false);
+        category = "already_verified";
       } else if (/network|fetch.*failed|load failed|timeout/i.test(lower)) {
         friendly = "We couldn't reach the server. Check your connection and try again.";
+        category = "network";
       } else if (/invalid.*email|not.*found|user.*not/i.test(lower)) {
         friendly = "We couldn't find an account for that email. Double-check the address.";
+        category = "invalid_email";
+      } else {
+        // Unknown failure — give a safe, actionable fallback and keep UI consistent.
+        friendly =
+          "We couldn't resend the verification email right now. Please try again in a minute, or contact support if it keeps failing.";
+        // Soft cooldown so users don't spam the button on unknown errors.
+        setResendCooldown((prev) => (prev > 0 ? prev : 15));
+        category = "unknown";
       }
+
+      // Structured log for debugging without leaking the address into prod logs.
+      // eslint-disable-next-line no-console
+      console.error("[auth] resend_verification_failed", {
+        category,
+        status: status ?? null,
+        code: code ?? null,
+        name: name ?? null,
+        rawMessage: raw,
+        emailDomain: email.includes("@") ? email.split("@")[1] : null,
+        cooldownAfter: resendCooldown,
+        timestamp: new Date().toISOString(),
+      });
+
       toast.error(friendly);
+      // Keep the inline notice/error in sync with the toast so the UI state
+      // never drifts (button stays visible + disabled state matches cooldown).
       setSubmitError(friendly);
+      setShowResend(true);
     } finally {
       setResending(false);
     }
