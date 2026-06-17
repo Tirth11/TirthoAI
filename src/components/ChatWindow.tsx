@@ -132,13 +132,26 @@ export function ChatWindow({
     creditsRef.current = credits ?? null;
   }, [credits]);
 
-  // Load messages for this conversation
+  // Load messages for this conversation. Guests autosave to localStorage so a
+  // refresh, accidental nav, or worker re-render never wipes their chat.
+  const GUEST_MSG_KEY = "tirthoai.guest-messages.v1";
   useEffect(() => {
     let alive = true;
     setInitialMessages(null);
     persistedIdsRef.current = new Set();
     if (guest) {
-      setInitialMessages([]);
+      let restored: UIMessage[] = [];
+      try {
+        const raw = typeof window !== "undefined" ? localStorage.getItem(GUEST_MSG_KEY) : null;
+        if (raw) {
+          const parsed = JSON.parse(raw) as UIMessage[];
+          if (Array.isArray(parsed)) restored = parsed;
+        }
+      } catch {
+        /* ignore */
+      }
+      restored.forEach((m) => persistedIdsRef.current.add(m.id));
+      setInitialMessages(restored);
       return () => {
         alive = false;
       };
@@ -157,6 +170,7 @@ export function ChatWindow({
       alive = false;
     };
   }, [conversation.id, guest]);
+
 
   const transport = useMemo(
     () =>
