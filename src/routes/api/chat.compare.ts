@@ -111,7 +111,7 @@ export const Route = createFileRoute("/api/chat/compare")({
               messages: modelMessages,
             });
 
-            const u = result.usage ?? ({} as Record<string, number | undefined>);
+            const u = (result.usage ?? {}) as Record<string, number | undefined>;
             const pt = Number(u.inputTokens ?? u.promptTokens ?? 0) || 0;
             const ct = Number(u.outputTokens ?? u.completionTokens ?? 0) || 0;
             const tt = Number(u.totalTokens ?? pt + ct) || pt + ct;

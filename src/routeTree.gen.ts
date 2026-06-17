@@ -15,6 +15,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiHealthModelsRouteImport } from './routes/api/health.models'
+import { Route as ApiChatCompareRouteImport } from './routes/api/chat.compare'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -46,13 +47,19 @@ const ApiHealthModelsRoute = ApiHealthModelsRouteImport.update({
   path: '/api/health/models',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiChatCompareRoute = ApiChatCompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
+  getParentRoute: () => ApiChatRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/api/chat': typeof ApiChatRoute
+  '/api/chat': typeof ApiChatRouteWithChildren
+  '/api/chat/compare': typeof ApiChatCompareRoute
   '/api/health/models': typeof ApiHealthModelsRoute
 }
 export interface FileRoutesByTo {
@@ -60,7 +67,8 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/api/chat': typeof ApiChatRoute
+  '/api/chat': typeof ApiChatRouteWithChildren
+  '/api/chat/compare': typeof ApiChatCompareRoute
   '/api/health/models': typeof ApiHealthModelsRoute
 }
 export interface FileRoutesById {
@@ -69,7 +77,8 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/api/chat': typeof ApiChatRoute
+  '/api/chat': typeof ApiChatRouteWithChildren
+  '/api/chat/compare': typeof ApiChatCompareRoute
   '/api/health/models': typeof ApiHealthModelsRoute
 }
 export interface FileRouteTypes {
@@ -80,6 +89,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sitemap.xml'
     | '/api/chat'
+    | '/api/chat/compare'
     | '/api/health/models'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -88,6 +98,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sitemap.xml'
     | '/api/chat'
+    | '/api/chat/compare'
     | '/api/health/models'
   id:
     | '__root__'
@@ -96,6 +107,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sitemap.xml'
     | '/api/chat'
+    | '/api/chat/compare'
     | '/api/health/models'
   fileRoutesById: FileRoutesById
 }
@@ -104,7 +116,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  ApiChatRoute: typeof ApiChatRoute
+  ApiChatRoute: typeof ApiChatRouteWithChildren
   ApiHealthModelsRoute: typeof ApiHealthModelsRoute
 }
 
@@ -152,15 +164,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthModelsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/chat/compare': {
+      id: '/api/chat/compare'
+      path: '/compare'
+      fullPath: '/api/chat/compare'
+      preLoaderRoute: typeof ApiChatCompareRouteImport
+      parentRoute: typeof ApiChatRoute
+    }
   }
 }
+
+interface ApiChatRouteChildren {
+  ApiChatCompareRoute: typeof ApiChatCompareRoute
+}
+
+const ApiChatRouteChildren: ApiChatRouteChildren = {
+  ApiChatCompareRoute: ApiChatCompareRoute,
+}
+
+const ApiChatRouteWithChildren =
+  ApiChatRoute._addFileChildren(ApiChatRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  ApiChatRoute: ApiChatRoute,
+  ApiChatRoute: ApiChatRouteWithChildren,
   ApiHealthModelsRoute: ApiHealthModelsRoute,
 }
 export const routeTree = rootRouteImport
