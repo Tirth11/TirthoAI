@@ -137,7 +137,6 @@ export function ChatWindow({
 
   // Load messages for this conversation. Guests autosave to localStorage so a
   // refresh, accidental nav, or worker re-render never wipes their chat.
-  const GUEST_MSG_KEY = "tirthoai.guest-messages.v1";
   useEffect(() => {
     let alive = true;
     setInitialMessages(null);
