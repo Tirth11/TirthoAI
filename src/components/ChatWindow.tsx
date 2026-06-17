@@ -320,13 +320,21 @@ export function ChatWindow({
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Smart auto-scroll: only follow if user hasn't scrolled away.
+  // Smart auto-scroll: only follow when the message COUNT grows AND the user
+  // was already at the bottom. Avoids jumpy mid-stream re-scrolls and never
+  // yanks the user back to the bottom if they scrolled up to read.
+  const lastMsgCountRef = useRef(0);
   useEffect(() => {
-    if (!stickToBottomRef.current) return;
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [renderMessages, status]);
+    const grew = renderMessages.length > lastMsgCountRef.current;
+    lastMsgCountRef.current = renderMessages.length;
+    if (!grew) return;
+    if (!stickToBottomRef.current) return;
+    // Instant (no smooth) so successive grows don't visibly animate/jump.
+    el.scrollTop = el.scrollHeight;
+  }, [renderMessages]);
+
 
   // Mobile keyboard handling: track visualViewport so the input stays above
   // the on-screen keyboard, and keep the latest message in view when it opens.
@@ -514,7 +522,7 @@ export function ChatWindow({
 
   return (
     <>
-    <div className="flex h-full min-h-0 flex-col bg-background">
+    <div className="flex h-full min-h-0 flex-1 flex-col bg-background" style={{ minHeight: 0 }}>
       <header
         className="relative z-20 grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border bg-background px-3 py-2.5 sm:flex sm:flex-nowrap sm:items-center sm:justify-between sm:px-6 sm:py-3"
         style={{

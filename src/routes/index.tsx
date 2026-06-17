@@ -79,7 +79,7 @@ function GuestLayout({ onGoToAuth }: { onGoToAuth: (mode: "signin" | "signup") =
   };
   return (
     <div className="flex h-dvh min-h-0 overflow-hidden bg-background text-foreground">
-      <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
+      <main className="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
         <ChatWindow
           key="guest"
           conversation={conversation}
@@ -184,7 +184,7 @@ function ChatLayout({ userEmail, userId }: { userEmail: string; userId: string }
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
-      <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
+      <main className="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
         {active && (
           <ChatWindow
             key={active.id}

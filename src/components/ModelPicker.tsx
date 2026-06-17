@@ -74,7 +74,14 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
 
 
         {open && (
-          <div className="fixed inset-x-3 top-16 z-50 max-h-[70dvh] overflow-y-auto rounded-xl border border-border bg-popover p-2 shadow-2xl sm:absolute sm:inset-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 sm:max-h-[60vh]">
+          <>
+          <div
+            className="fixed inset-0 z-[90] bg-black/30 sm:hidden"
+            aria-hidden="true"
+            onClick={() => setOpen(false)}
+          />
+          <div className="fixed inset-x-3 top-16 z-[100] max-h-[70dvh] overflow-y-auto rounded-xl border border-border bg-popover p-2 shadow-2xl sm:absolute sm:inset-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 sm:max-h-[60vh] sm:z-50">
+
             {enabledUserModels.length > 0 && (
               <div className="mb-3">
                 <div className="flex items-center justify-between px-2 py-1.5">
@@ -177,7 +184,9 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
               </Link>
             )}
           </div>
+          </>
         )}
+
       </div>
     </div>
   );
