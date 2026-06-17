@@ -142,13 +142,23 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
                       >
                         <span className="text-base leading-none">{m.badge}</span>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-semibold text-foreground truncate">{m.label}</span>
                             {h?.ok && (
                               <span
                                 className="h-1.5 w-1.5 rounded-full bg-emerald-500"
                                 title={`Healthy${h.latencyMs ? ` · ${h.latencyMs}ms` : ""}`}
                               />
+                            )}
+                            {m.provider === "groq" && (
+                              <span className="rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-orange-500">
+                                Groq
+                              </span>
+                            )}
+                            {m.provider === "nvidia" && (
+                              <span className="rounded-full bg-green-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-green-600 dark:text-green-400">
+                                NVIDIA
+                              </span>
                             )}
                             {m.supportsVision && (
                               <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-500">
