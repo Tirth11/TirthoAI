@@ -109,8 +109,9 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
           if (signInErr) {
             // Most likely cause: project requires email verification.
             setNotice(
-              `We sent a verification email to ${email}. Open it and click the link to activate your account, then sign in.`,
+              `We sent a verification email to ${email}. Open it and click the link to activate your account, then sign in. Didn't get it? Check spam, or tap "Resend verification email" below.`,
             );
+            setShowResend(true);
             toast.success("Check your inbox to verify your email");
             setMode("signin");
             return;
