@@ -514,12 +514,9 @@ export function ChatWindow({
 
   return (
     <>
-    <div
-      className="flex h-full min-h-0 flex-col bg-background"
-      style={{ height: "calc(100% - var(--kb-inset, 0px))" }}
-    >
+    <div className="flex h-full min-h-0 flex-col bg-background">
       <header
-        className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-background/80 px-3 py-2.5 backdrop-blur sm:flex-nowrap sm:px-6 sm:py-3"
+        className="relative z-20 grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border bg-background px-3 py-2.5 sm:flex sm:flex-nowrap sm:items-center sm:justify-between sm:px-6 sm:py-3"
         style={{
           paddingTop: "max(0.625rem, env(safe-area-inset-top))",
           paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
