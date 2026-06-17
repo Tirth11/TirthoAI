@@ -113,6 +113,7 @@ export function ChatWindow({
   const totalCredits = guest ? GUEST_FREE_CREDITS : FREE_CREDITS;
   const outOfCredits = credits !== null && credits <= 0;
   const [showSignup, setShowSignup] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
   const cached = ModelCache.get(conversation.id);
   const [modelId, setModelId] = useState(cached?.modelId ?? conversation.model_id);
   const [modelUpdatedAt, setModelUpdatedAt] = useState<string>(
