@@ -6,9 +6,11 @@ import { AuthScreen } from "@/components/AuthScreen";
 import { BrandedLoader } from "@/components/BrandedLoader";
 import { ChatDB, type DBConversation } from "@/lib/chat-db";
 import { DEFAULT_MODEL } from "@/lib/models";
+import { ModelCache } from "@/lib/model-cache";
 import { useAuthSession } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { isGuestMode, enterGuestMode, exitGuestMode } from "@/lib/guest";
+
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -117,7 +119,7 @@ function ChatLayout({ userEmail, userId }: { userEmail: string; userId: string }
     (async () => {
       let list = await refresh();
       if (list.length === 0) {
-        const created = await ChatDB.createConversation(DEFAULT_MODEL);
+        const created = await ChatDB.createConversation(ModelCache.getLast() ?? DEFAULT_MODEL);
         list = [created];
         setConversations(list);
       }
@@ -127,7 +129,7 @@ function ChatLayout({ userEmail, userId }: { userEmail: string; userId: string }
   }, [refresh]);
 
   const handleNew = async () => {
-    const created = await ChatDB.createConversation(DEFAULT_MODEL);
+    const created = await ChatDB.createConversation(ModelCache.getLast() ?? DEFAULT_MODEL);
     await refresh();
     setActiveId(created.id);
     setSidebarOpen(false);
@@ -142,7 +144,7 @@ function ChatLayout({ userEmail, userId }: { userEmail: string; userId: string }
     await ChatDB.deleteConversation(id);
     const list = await refresh();
     if (list.length === 0) {
-      const created = await ChatDB.createConversation(DEFAULT_MODEL);
+      const created = await ChatDB.createConversation(ModelCache.getLast() ?? DEFAULT_MODEL);
       setConversations([created]);
       setActiveId(created.id);
     } else if (activeId === id) {

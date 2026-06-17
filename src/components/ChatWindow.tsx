@@ -46,6 +46,9 @@ interface Props {
 }
 
 const TEXT_EXTS = [".txt", ".md", ".csv", ".json", ".log", ".html", ".xml", ".yaml", ".yml"];
+const GUEST_MSG_KEY = "tirthoai.guest-messages.v1";
+
+
 
 function formatRelativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -132,13 +135,25 @@ export function ChatWindow({
     creditsRef.current = credits ?? null;
   }, [credits]);
 
-  // Load messages for this conversation
+  // Load messages for this conversation. Guests autosave to localStorage so a
+  // refresh, accidental nav, or worker re-render never wipes their chat.
   useEffect(() => {
     let alive = true;
     setInitialMessages(null);
     persistedIdsRef.current = new Set();
     if (guest) {
-      setInitialMessages([]);
+      let restored: UIMessage[] = [];
+      try {
+        const raw = typeof window !== "undefined" ? localStorage.getItem(GUEST_MSG_KEY) : null;
+        if (raw) {
+          const parsed = JSON.parse(raw) as UIMessage[];
+          if (Array.isArray(parsed)) restored = parsed;
+        }
+      } catch {
+        /* ignore */
+      }
+      restored.forEach((m) => persistedIdsRef.current.add(m.id));
+      setInitialMessages(restored);
       return () => {
         alive = false;
       };
@@ -157,6 +172,7 @@ export function ChatWindow({
       alive = false;
     };
   }, [conversation.id, guest]);
+
 
   const transport = useMemo(
     () =>
@@ -307,6 +323,18 @@ export function ChatWindow({
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, messages, conversation.id]);
+
+  // Guest autosave: write the full message list to localStorage on every
+  // change so a refresh/re-render never wipes guest chat history.
+  useEffect(() => {
+    if (!guest || typeof window === "undefined") return;
+    try {
+      localStorage.setItem(GUEST_MSG_KEY, JSON.stringify(messages));
+    } catch {
+      /* ignore quota */
+    }
+  }, [guest, messages]);
+
 
   // Track whether the user is near the bottom (so we only auto-scroll then)
   useEffect(() => {
@@ -681,7 +709,10 @@ export function ChatWindow({
 
       <div
         ref={scrollRef}
+        data-testid="chat-scroll-region"
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-5 sm:px-6 sm:py-6"
+
+
         style={{
           paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
           paddingRight: "max(0.75rem, env(safe-area-inset-right))",
