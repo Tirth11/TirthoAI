@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { MODELS, getModelById, DEFAULT_MODEL } from "@/lib/models";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useModelHealth } from "@/hooks/use-model-health";
+import { isModelDown } from "@/lib/model-fallback";
 import type { UIMessage } from "ai";
 import type { CompareResult } from "@/routes/api/chat.compare";
 
@@ -41,6 +43,7 @@ export function CompareDialog({ open, onClose, prompt, history, storageKey = "ti
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<CompareResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { health } = useModelHealth();
 
   useEffect(() => {
     if (!open) return;
@@ -53,14 +56,23 @@ export function CompareDialog({ open, onClose, prompt, history, storageKey = "ti
     try { localStorage.setItem(storageKey, JSON.stringify(picked)); } catch { /* ignore */ }
   }, [picked, storageKey]);
 
+  // Drop picks that have since become unhealthy so we never fan out to a known-down model.
+  useEffect(() => {
+    setPicked((prev) => {
+      const next = prev.filter((id) => !isModelDown(id, health));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [health]);
+
   const grouped = useMemo(() => {
     const by: Record<string, typeof MODELS> = {};
     for (const m of MODELS) {
+      if (isModelDown(m.id, health)) continue; // hide unhealthy models from selection
       const k = (m.provider ?? "lovable") as string;
       (by[k] ||= []).push(m);
     }
     return by;
-  }, []);
+  }, [health]);
 
   const togglePick = (id: string) => {
     setPicked((prev) => {
@@ -162,6 +174,48 @@ export function CompareDialog({ open, onClose, prompt, history, storageKey = "ti
         <div className="flex-1 overflow-y-auto p-5">
           {!results && (
             <>
+              <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-4 border-b border-border bg-card/95 px-5 py-3 backdrop-blur">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Selected ({picked.length}/{MAX_PICK})
+                  </span>
+                  {picked.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setPicked([])}
+                      className="text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                {picked.length === 0 ? (
+                  <p className="text-xs italic text-muted-foreground">Tap models below to add them here.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {picked.map((id) => {
+                      const m = getModelById(id);
+                      return (
+                        <span
+                          key={id}
+                          className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-foreground"
+                        >
+                          <span>{m?.badge ?? "✨"}</span>
+                          <span className="max-w-[140px] truncate">{m?.label ?? id}</span>
+                          <button
+                            type="button"
+                            onClick={() => togglePick(id)}
+                            className="ml-0.5 rounded-full p-0.5 text-muted-foreground hover:bg-primary/20 hover:text-foreground"
+                            aria-label={`Remove ${m?.label ?? id}`}
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               <div className="mb-4 rounded-lg border border-border bg-background/50 p-3">
                 <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Prompt
