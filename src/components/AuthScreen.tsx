@@ -87,7 +87,7 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
         friendly = "This email is already verified — try signing in.";
         setShowResend(false);
         category = "already_verified";
-      } else if (/network|fetch.*failed|load failed|timeout/i.test(lower)) {
+      } else if (/network|fetch|load failed|timeout|connection/i.test(lower)) {
         friendly = "We couldn't reach the server. Check your connection and try again.";
         category = "network";
       } else if (/invalid.*email|not.*found|user.*not/i.test(lower)) {
