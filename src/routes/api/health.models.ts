@@ -47,6 +47,34 @@ async function probeNvidia(modelId: string, key: string): Promise<ModelHealth> {
   }
 }
 
+async function probeGroq(modelId: string, key: string): Promise<ModelHealth> {
+  const t0 = Date.now();
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12_000);
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      signal: ctrl.signal,
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: modelId,
+        messages: [{ role: "user", content: "hi" }],
+        max_tokens: 1,
+        stream: false,
+      }),
+    });
+    clearTimeout(timer);
+    return { ok: res.ok, provider: "groq", status: res.status, latencyMs: Date.now() - t0 };
+  } catch (e) {
+    return {
+      ok: false,
+      provider: "groq",
+      error: e instanceof Error ? e.message.slice(0, 120) : "network_error",
+      latencyMs: Date.now() - t0,
+    };
+  }
+}
+
 async function probeLovable(key: string): Promise<ModelHealth> {
   const t0 = Date.now();
   try {
@@ -78,27 +106,44 @@ async function probeLovable(key: string): Promise<ModelHealth> {
 async function runReport(): Promise<HealthReport> {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const nvidiaKey = process.env.NVIDIA_API_KEY;
+  const groqKey = process.env.GROQ_API_KEY;
 
   const lovableModels = MODELS.filter((m) => (m.provider ?? "lovable") === "lovable");
   const nvidiaModels = MODELS.filter((m) => m.provider === "nvidia");
+  const groqModels = MODELS.filter((m) => m.provider === "groq");
 
-  // One probe per provider for lovable (all lovable models share gateway health).
   const lovableHealthPromise = lovableKey
     ? probeLovable(lovableKey)
     : Promise.resolve<ModelHealth>({ ok: false, provider: "lovable", error: "no_key" });
 
-  // Probe each NVIDIA model individually since availability varies.
   const nvProbes = nvidiaKey
     ? nvidiaModels.map((m) => probeNvidia(m.id, nvidiaKey).then((h) => [m.id, h] as const))
     : nvidiaModels.map((m) =>
         Promise.resolve([m.id, { ok: false, provider: "nvidia", error: "no_key" }] as const),
       );
 
-  const [lovableHealth, ...nvResults] = await Promise.all([lovableHealthPromise, ...nvProbes]);
+  const groqProbes = groqKey
+    ? groqModels.map((m) => probeGroq(m.id, groqKey).then((h) => [m.id, h] as const))
+    : groqModels.map((m) =>
+        Promise.resolve([m.id, { ok: false, provider: "groq", error: "no_key" }] as const),
+      );
+
+  const settled = await Promise.all([lovableHealthPromise, ...nvProbes, ...groqProbes]);
+  const lovableHealth = settled[0] as ModelHealth;
+  const providerResults = settled.slice(1) as ReadonlyArray<readonly [string, ModelHealth]>;
 
   const models: Record<string, ModelHealth> = {};
   for (const m of lovableModels) models[m.id] = lovableHealth;
-  for (const [id, h] of nvResults) models[id] = h;
+  for (const [id, h] of providerResults) models[id] = h;
+
+  // Server-side structured log so health failures are visible without the UI.
+  const down = Object.entries(models)
+    .filter(([, h]) => !h.ok)
+    .map(([id, h]) => ({ id, provider: h.provider, status: h.status ?? null, error: h.error ?? null }));
+  if (down.length > 0) {
+    // eslint-disable-next-line no-console
+    console.warn("[health] models_down", { count: down.length, down });
+  }
 
   return { checkedAt: new Date().toISOString(), models };
 }

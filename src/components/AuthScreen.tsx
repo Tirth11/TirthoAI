@@ -61,7 +61,11 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
       );
       setResendCooldown(60);
     } catch (err) {
-      const raw = err instanceof Error ? err.message : "Couldn't resend verification email";
+      const errAny = err as { message?: string; status?: number; code?: string; name?: string } | null;
+      const raw =
+        (err instanceof Error && err.message) ||
+        (typeof errAny?.message === "string" && errAny.message) ||
+        "Couldn't resend verification email";
       const status = (err as { status?: number })?.status;
       const code = (err as { code?: string })?.code;
       const name = (err as { name?: string })?.name;
@@ -83,7 +87,7 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
         friendly = "This email is already verified — try signing in.";
         setShowResend(false);
         category = "already_verified";
-      } else if (/network|fetch.*failed|load failed|timeout/i.test(lower)) {
+      } else if (/network|fetch|load failed|timeout|connection/i.test(lower)) {
         friendly = "We couldn't reach the server. Check your connection and try again.";
         category = "network";
       } else if (/invalid.*email|not.*found|user.*not/i.test(lower)) {
@@ -112,10 +116,15 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
       });
 
       toast.error(friendly);
-      // Keep the inline notice/error in sync with the toast so the UI state
-      // never drifts (button stays visible + disabled state matches cooldown).
-      setSubmitError(friendly);
-      setShowResend(true);
+      // Keep the inline message in sync with the toast without duplicating
+      // the resend button. If a notice (verification prompt) is already
+      // visible, update it; otherwise surface a fresh submitError.
+      if (notice) {
+        setNotice(friendly);
+      } else {
+        setSubmitError(friendly);
+      }
+      setShowResend(category !== "already_verified");
     } finally {
       setResending(false);
     }
