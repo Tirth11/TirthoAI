@@ -44,7 +44,15 @@ function Index() {
 
   if (session) {
     if (guest) exitGuestMode();
-    return <ChatLayout userEmail={session.user.email ?? "User"} userId={session.user.id} />;
+    // Key by user id so switching accounts fully remounts (loads that user's
+    // own conversations from the DB; no state leak between users).
+    return (
+      <ChatLayout
+        key={session.user.id}
+        userEmail={session.user.email ?? "User"}
+        userId={session.user.id}
+      />
+    );
   }
 
   if (guest && !forceAuth) {
