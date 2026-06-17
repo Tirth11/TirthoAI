@@ -61,7 +61,11 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
       );
       setResendCooldown(60);
     } catch (err) {
-      const raw = err instanceof Error ? err.message : "Couldn't resend verification email";
+      const errAny = err as { message?: string; status?: number; code?: string; name?: string } | null;
+      const raw =
+        (err instanceof Error && err.message) ||
+        (typeof errAny?.message === "string" && errAny.message) ||
+        "Couldn't resend verification email";
       const status = (err as { status?: number })?.status;
       const code = (err as { code?: string })?.code;
       const name = (err as { name?: string })?.name;
