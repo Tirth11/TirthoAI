@@ -544,9 +544,9 @@ export function ChatWindow({
             {conversation.title}
           </h1>
         </div>
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 sm:flex-none sm:gap-2">
+          <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
           {guest && (
-            <div className="flex items-center gap-1.5">
+            <div className="hidden sm:flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => onGuestSignIn?.()}
@@ -566,7 +566,7 @@ export function ChatWindow({
           {credits !== null && (
             <span
               className={cn(
-                "hidden sm:inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+                "hidden sm:inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold shrink-0",
                 outOfCredits
                   ? "border-destructive/40 bg-destructive/10 text-destructive"
                   : credits < 50
@@ -579,7 +579,7 @@ export function ChatWindow({
               {credits}/{totalCredits}
             </span>
           )}
-          <div className="flex flex-col items-end gap-0.5">
+          <div className="min-w-0 max-w-[60vw] sm:max-w-xs">
             <ModelPicker
               modelId={modelId}
               onChange={(id) => {
@@ -598,54 +598,58 @@ export function ChatWindow({
               onAutoToggle={setAutoMode}
               hideUserModels={guest}
             />
-            <TooltipProvider delayDuration={150}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span
-                    data-testid="model-changed-indicator"
-                    data-model-id={modelId}
-                    data-previous-model-id={previousModelId ?? ""}
-                    data-model-updated-at={modelUpdatedAt}
-                    className="cursor-help text-[10px] text-muted-foreground/70 tabular-nums"
-                  >
-                    changed {formatRelativeTime(modelUpdatedAt)} · {userEmail}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" align="end" className="max-w-xs text-xs">
-                  <div className="space-y-1" data-testid="model-changed-tooltip">
-                    <div className="font-semibold">Model change</div>
-                    <div data-testid="model-changed-previous">
-                      <span className="text-muted-foreground">Previous: </span>
-                      {previousModelId
-                        ? (getModelById(previousModelId)?.label ?? previousModelId)
-                        : "—"}
-                    </div>
-                    <div data-testid="model-changed-current">
-                      <span className="text-muted-foreground">Current: </span>
-                      {getModelById(modelId)?.label ?? modelId}
-                    </div>
-                    <div data-testid="model-changed-at">
-                      <span className="text-muted-foreground">At: </span>
-                      <span className="tabular-nums">
-                        {new Date(modelUpdatedAt).toLocaleString(undefined, {
-                          dateStyle: "medium",
-                          timeStyle: "medium",
-                        })}
-                      </span>
-                    </div>
-                    <div data-testid="model-changed-by">
-                      <span className="text-muted-foreground">By: </span>
-                      {userEmail}
-                    </div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
           </div>
         </div>
 
       </header>
+
+      {/* Model-change subtitle row (desktop only) */}
+      <div className="relative z-10 hidden shrink-0 justify-end border-b border-border/60 bg-background px-6 py-1 sm:flex">
+        <TooltipProvider delayDuration={150}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span
+                data-testid="model-changed-indicator"
+                data-model-id={modelId}
+                data-previous-model-id={previousModelId ?? ""}
+                data-model-updated-at={modelUpdatedAt}
+                className="cursor-help truncate text-[10px] text-muted-foreground/70 tabular-nums"
+              >
+                changed {formatRelativeTime(modelUpdatedAt)} · {userEmail}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" align="end" className="max-w-xs text-xs">
+              <div className="space-y-1" data-testid="model-changed-tooltip">
+                <div className="font-semibold">Model change</div>
+                <div data-testid="model-changed-previous">
+                  <span className="text-muted-foreground">Previous: </span>
+                  {previousModelId
+                    ? (getModelById(previousModelId)?.label ?? previousModelId)
+                    : "—"}
+                </div>
+                <div data-testid="model-changed-current">
+                  <span className="text-muted-foreground">Current: </span>
+                  {getModelById(modelId)?.label ?? modelId}
+                </div>
+                <div data-testid="model-changed-at">
+                  <span className="text-muted-foreground">At: </span>
+                  <span className="tabular-nums">
+                    {new Date(modelUpdatedAt).toLocaleString(undefined, {
+                      dateStyle: "medium",
+                      timeStyle: "medium",
+                    })}
+                  </span>
+                </div>
+                <div data-testid="model-changed-by">
+                  <span className="text-muted-foreground">By: </span>
+                  {userEmail}
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+
 
       {outOfCredits && (
         <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-2.5 text-center text-xs font-medium text-destructive sm:px-6">
