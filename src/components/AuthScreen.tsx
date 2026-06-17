@@ -27,6 +27,40 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitErrorHint, setSubmitErrorHint] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [showResend, setShowResend] = useState(false);
+  const [resending, setResending] = useState(false);
+
+  const handleResendVerification = async () => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Enter your email above first, then tap Resend.");
+      return;
+    }
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/` },
+      });
+      if (error) throw error;
+      toast.success(`Verification email re-sent to ${email}`);
+      setNotice(
+        `We re-sent the verification email to ${email}. Check your inbox (and spam folder), click the link, then sign in.`,
+      );
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "Couldn't resend verification email";
+      const lower = raw.toLowerCase();
+      let friendly = raw;
+      if (/rate.?limit|too many|for security/i.test(lower)) {
+        friendly = "Please wait a minute before requesting another verification email.";
+      } else if (/already.*confirmed|already.*verified/i.test(lower)) {
+        friendly = "This email is already verified — try signing in.";
+      }
+      toast.error(friendly);
+    } finally {
+      setResending(false);
+    }
+  };
 
 
 
