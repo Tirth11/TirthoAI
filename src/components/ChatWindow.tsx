@@ -46,6 +46,9 @@ interface Props {
 }
 
 const TEXT_EXTS = [".txt", ".md", ".csv", ".json", ".log", ".html", ".xml", ".yaml", ".yml"];
+const GUEST_MSG_KEY = "tirthoai.guest-messages.v1";
+
+
 
 function formatRelativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
