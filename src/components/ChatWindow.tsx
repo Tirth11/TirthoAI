@@ -16,6 +16,7 @@ import {
   Check,
   Square,
   Zap,
+  GitCompare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ import {
   setGuestRemaining,
 } from "@/lib/guest";
 import { SignupPrompt } from "@/components/SignupPrompt";
+import { CompareDialog } from "@/components/CompareDialog";
 
 interface Props {
   conversation: DBConversation;
@@ -111,6 +113,7 @@ export function ChatWindow({
   const totalCredits = guest ? GUEST_FREE_CREDITS : FREE_CREDITS;
   const outOfCredits = credits !== null && credits <= 0;
   const [showSignup, setShowSignup] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
   const cached = ModelCache.get(conversation.id);
   const [modelId, setModelId] = useState(cached?.modelId ?? conversation.model_id);
   const [modelUpdatedAt, setModelUpdatedAt] = useState<string>(
@@ -917,6 +920,24 @@ export function ChatWindow({
               className="flex-1 resize-none bg-transparent px-1 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
               disabled={isLoading || outOfCredits}
             />
+            {!guest && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!input.trim()) {
+                    toast.error("Type a prompt first, then click Compare.");
+                    return;
+                  }
+                  setShowCompare(true);
+                }}
+                disabled={isLoading || outOfCredits}
+                className="hidden sm:inline-flex h-9 items-center gap-1 rounded-lg border border-border bg-background px-2.5 text-[11px] font-semibold text-foreground transition hover:border-primary/50 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Compare across models"
+                title="Send this prompt to multiple models side-by-side"
+              >
+                <GitCompare className="h-3.5 w-3.5" /> Compare
+              </button>
+            )}
             {isLoading ? (
               <button
                 type="button"
@@ -953,6 +974,17 @@ export function ChatWindow({
         </div>
       </div>
     </div>
+
+      {!guest && (
+        <CompareDialog
+          open={showCompare}
+          onClose={() => setShowCompare(false)}
+          prompt={input}
+          history={messages}
+        />
+      )}
+
+
 
       {guest && (
         <SignupPrompt
