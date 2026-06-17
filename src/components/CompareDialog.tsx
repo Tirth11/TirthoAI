@@ -43,6 +43,7 @@ export function CompareDialog({ open, onClose, prompt, history, storageKey = "ti
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<CompareResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { health } = useModelHealth();
 
   useEffect(() => {
     if (!open) return;
@@ -55,14 +56,23 @@ export function CompareDialog({ open, onClose, prompt, history, storageKey = "ti
     try { localStorage.setItem(storageKey, JSON.stringify(picked)); } catch { /* ignore */ }
   }, [picked, storageKey]);
 
+  // Drop picks that have since become unhealthy so we never fan out to a known-down model.
+  useEffect(() => {
+    setPicked((prev) => {
+      const next = prev.filter((id) => !isModelDown(id, health));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [health]);
+
   const grouped = useMemo(() => {
     const by: Record<string, typeof MODELS> = {};
     for (const m of MODELS) {
+      if (isModelDown(m.id, health)) continue; // hide unhealthy models from selection
       const k = (m.provider ?? "lovable") as string;
       (by[k] ||= []).push(m);
     }
     return by;
-  }, []);
+  }, [health]);
 
   const togglePick = (id: string) => {
     setPicked((prev) => {
