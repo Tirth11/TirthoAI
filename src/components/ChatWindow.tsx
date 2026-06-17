@@ -322,6 +322,18 @@ export function ChatWindow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, messages, conversation.id]);
 
+  // Guest autosave: write the full message list to localStorage on every
+  // change so a refresh/re-render never wipes guest chat history.
+  useEffect(() => {
+    if (!guest || typeof window === "undefined") return;
+    try {
+      localStorage.setItem(GUEST_MSG_KEY, JSON.stringify(messages));
+    } catch {
+      /* ignore quota */
+    }
+  }, [guest, messages]);
+
+
   // Track whether the user is near the bottom (so we only auto-scroll then)
   useEffect(() => {
     const el = scrollRef.current;
