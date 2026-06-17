@@ -34,6 +34,7 @@ import {
   setGuestRemaining,
 } from "@/lib/guest";
 import { SignupPrompt } from "@/components/SignupPrompt";
+import { CompareDialog } from "@/components/CompareDialog";
 
 interface Props {
   conversation: DBConversation;
