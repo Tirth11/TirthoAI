@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Check, ChevronDown, Zap, Plus, AlertCircle } from "lucide-react";
+import { Check, ChevronDown, Zap, Plus, AlertCircle, AlertTriangle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { MODELS, CATEGORY_META, type ModelCategory, getModelById } from "@/lib/models";
 import { USER_MODEL_PREFIX, presetFor, type UserModelDTO } from "@/lib/user-models-shared";
 import { useUserModels } from "@/hooks/use-user-models";
 import { useModelHealth } from "@/hooks/use-model-health";
+import { pickHealthyFallback, isModelDown } from "@/lib/model-fallback";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -57,20 +58,48 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
       </button>
 
       <div className="relative">
-        <button
-          onClick={() => setOpen((v) => !v)}
-          disabled={autoMode}
-          data-testid="model-picker-trigger"
-          data-model-id={modelId}
-          className={cn(
-            "flex max-w-[44vw] items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 text-xs font-medium transition hover:border-primary/40 sm:max-w-none sm:gap-2 sm:px-3",
-            autoMode && "opacity-60 cursor-not-allowed"
-          )}
-        >
-          <span>{selectedBadge}</span>
-          <span className="max-w-[84px] truncate sm:max-w-[160px]">{selectedLabel}</span>
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
-        </button>
+        {(() => {
+          const selectedDown = !!selectedBuiltIn && isModelDown(modelId, health);
+          const fallback = selectedDown ? pickHealthyFallback(modelId, health) : null;
+          const fallbackModel = fallback ? getModelById(fallback.id) : null;
+          const isGroqDown = selectedDown && selectedBuiltIn?.provider === "groq";
+          return (
+            <>
+              <button
+                onClick={() => setOpen((v) => !v)}
+                disabled={autoMode}
+                data-testid="model-picker-trigger"
+                data-model-id={modelId}
+                data-health={selectedDown ? "down" : "ok"}
+                data-fallback-id={fallbackModel?.id ?? ""}
+                title={
+                  selectedDown
+                    ? `${selectedLabel} is unhealthy${
+                        fallbackModel ? ` — auto-fallback to ${fallbackModel.label}` : ""
+                      }`
+                    : undefined
+                }
+                className={cn(
+                  "flex max-w-[44vw] items-center gap-1.5 rounded-lg border bg-card px-2 py-1.5 text-xs font-medium transition hover:border-primary/40 sm:max-w-none sm:gap-2 sm:px-3",
+                  selectedDown ? "border-amber-500/60" : "border-border",
+                  autoMode && "opacity-60 cursor-not-allowed"
+                )}
+              >
+                <span>{selectedBadge}</span>
+                <span className="max-w-[84px] truncate sm:max-w-[160px]">{selectedLabel}</span>
+                {selectedDown && (
+                  <span className="flex items-center gap-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-600 dark:text-amber-400">
+                    <AlertTriangle className="h-2.5 w-2.5" />
+                    {isGroqDown ? "Groq down" : "Down"}
+                    {fallbackModel && <span className="font-semibold normal-case">→ {fallbackModel.label}</span>}
+                  </span>
+                )}
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              </button>
+            </>
+          );
+        })()}
+
 
 
         {open && (
