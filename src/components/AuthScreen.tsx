@@ -269,15 +269,31 @@ export function AuthScreen({ initialMode = "signup", onContinueAsGuest }: AuthSc
               )}
             </div>
 
+            {notice && (
+              <div
+                role="status"
+                className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-[12px] text-foreground"
+              >
+                <div className="mb-0.5 font-semibold text-primary">Verify your email</div>
+                <div className="leading-snug">{notice}</div>
+              </div>
+            )}
+
             {submitError && (
               <div
                 role="alert"
                 className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[12px] text-destructive"
               >
-                <div className="font-semibold mb-0.5">Supabase error</div>
-                <div className="break-words font-mono text-[11px] leading-snug">{submitError}</div>
+                <div className="font-semibold mb-0.5">
+                  {mode === "signin" ? "Couldn't sign you in" : "Couldn't create your account"}
+                </div>
+                <div className="leading-snug">{submitError}</div>
+                {submitErrorHint && (
+                  <div className="mt-1 text-[11px] text-destructive/80">{submitErrorHint}</div>
+                )}
               </div>
             )}
+
 
             <button
               type="submit"
