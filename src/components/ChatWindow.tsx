@@ -920,6 +920,24 @@ export function ChatWindow({
               className="flex-1 resize-none bg-transparent px-1 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
               disabled={isLoading || outOfCredits}
             />
+            {!guest && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!input.trim()) {
+                    toast.error("Type a prompt first, then click Compare.");
+                    return;
+                  }
+                  setShowCompare(true);
+                }}
+                disabled={isLoading || outOfCredits}
+                className="hidden sm:inline-flex h-9 items-center gap-1 rounded-lg border border-border bg-background px-2.5 text-[11px] font-semibold text-foreground transition hover:border-primary/50 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Compare across models"
+                title="Send this prompt to multiple models side-by-side"
+              >
+                <GitCompare className="h-3.5 w-3.5" /> Compare
+              </button>
+            )}
             {isLoading ? (
               <button
                 type="button"
