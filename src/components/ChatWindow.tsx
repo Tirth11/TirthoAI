@@ -514,7 +514,7 @@ export function ChatWindow({
 
   return (
     <>
-    <div className="flex h-full min-h-0 flex-col bg-background">
+    <div className="flex h-full min-h-0 flex-1 flex-col bg-background" style={{ minHeight: 0 }}>
       <header
         className="relative z-20 grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border bg-background px-3 py-2.5 sm:flex sm:flex-nowrap sm:items-center sm:justify-between sm:px-6 sm:py-3"
         style={{
