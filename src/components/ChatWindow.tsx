@@ -948,9 +948,7 @@ export function ChatWindow({
                 }
               }}
               placeholder={
-                outOfCredits
-                  ? "You've used all your free credits"
-                  : `Message TirthoAI… (Shift+Enter for newline)`
+                outOfCredits ? "You've used all your free credits" : "Message TirthoAI…"
               }
               rows={1}
               className="flex-1 resize-none bg-transparent px-1 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
