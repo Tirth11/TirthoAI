@@ -1,0 +1,7 @@
+# TirthoAI
+
+> TirthoAI is a multi-model AI chat workspace. Talk to reasoning, coding, vision, and creative models in one place, with persistent chat history and bring-your-own API keys.
+
+## Pages
+
+- [Home](/): Sign in, sign up, or try TirthoAI as a guest with free credits.

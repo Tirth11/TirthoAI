@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /settings
+Disallow: /reset-password
+
+Sitemap: https://tirthoai.lovable.app/sitemap.xml
