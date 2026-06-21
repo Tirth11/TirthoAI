@@ -47,7 +47,10 @@ export const MODELS: ModelConfig[] = [
   {
     label: "GPT-OSS 20B", id: "openai/gpt-oss-20b", provider: "groq", category: "general",
     badge: "🔓", description: "Open-weight GPT-OSS, balanced",
-    fallbacks: [{ provider: "openrouter", id: "openai/gpt-oss-20b:free" }],
+    fallbacks: [
+      { provider: "nvidia", id: "openai/gpt-oss-20b" },
+      { provider: "openrouter", id: "openai/gpt-oss-20b:free" },
+    ],
   },
   {
     label: "Mistral Medium 3.5", id: "mistralai/mistral-medium-3.5-128b", provider: "nvidia", category: "general",
@@ -66,7 +69,10 @@ export const MODELS: ModelConfig[] = [
   {
     label: "GPT-OSS 120B", id: "openai/gpt-oss-120b", provider: "groq", category: "reasoning",
     badge: "🧠", description: "Large open-weight reasoning model",
-    fallbacks: [{ provider: "openrouter", id: "openai/gpt-oss-120b:free" }],
+    fallbacks: [
+      { provider: "nvidia", id: "openai/gpt-oss-120b" },
+      { provider: "openrouter", id: "openai/gpt-oss-120b:free" },
+    ],
   },
   {
     label: "GLM 5.1", id: "z-ai/glm-5.1", provider: "nvidia", category: "reasoning",
@@ -78,8 +84,8 @@ export const MODELS: ModelConfig[] = [
     fallbacks: [{ provider: "openrouter", id: "qwen/qwen3-next-80b-a3b-instruct:free" }],
   },
   {
-    label: "Llama 4 Scout", id: "meta-llama/llama-4-scout-17b-16e-instruct", provider: "groq", category: "reasoning",
-    badge: "🦅", description: "Llama 4 Scout MoE",
+    label: "Nemotron Super 49B", id: "nvidia/llama-3.3-nemotron-super-49b-v1.5", provider: "nvidia", category: "reasoning",
+    badge: "🛰️", description: "NVIDIA Nemotron Super 49B",
   },
 
   // ── Coding ──
@@ -89,16 +95,19 @@ export const MODELS: ModelConfig[] = [
     fallbacks: [{ provider: "openrouter", id: "qwen/qwen3-coder:free" }],
   },
   {
-    label: "Qwen3 Coder 480B", id: "qwen/qwen3-coder-480b-a35b-instruct", provider: "nvidia", category: "coding",
-    badge: "🛠️", description: "Large Qwen3 Coder MoE",
+    label: "Qwen 3.5 122B", id: "qwen/qwen3.5-122b-a10b", provider: "nvidia", category: "coding",
+    badge: "🛠️", description: "Large Qwen 3.5 coder / reasoner",
     fallbacks: [{ provider: "openrouter", id: "qwen/qwen3-coder:free" }],
+  },
+  {
+    label: "DeepSeek V4 Pro", id: "deepseek-ai/deepseek-v4-pro", provider: "nvidia", category: "coding",
+    badge: "🌊", description: "DeepSeek V4 Pro — strong coding",
   },
 
   // ── Creative ──
   {
-    label: "Kimi K2", id: "moonshotai/kimi-k2-instruct", provider: "groq", category: "creative",
-    badge: "🌙", description: "Moonshot Kimi K2 — creative writing",
-    fallbacks: [{ provider: "nvidia", id: "moonshotai/kimi-k2.6" }],
+    label: "Kimi K2", id: "moonshotai/kimi-k2.6", provider: "nvidia", category: "creative",
+    badge: "🌙", description: "Moonshot Kimi K2.6 — creative writing",
   },
   {
     label: "Gemma 4 31B", id: "google/gemma-4-31b-it:free", provider: "openrouter", category: "creative",
@@ -107,8 +116,8 @@ export const MODELS: ModelConfig[] = [
 
   // ── Vision ──
   {
-    label: "Llama 4 Maverick", id: "meta-llama/llama-4-maverick-17b-128e-instruct", provider: "groq", category: "vision",
-    badge: "🖼️", description: "Multimodal — understands images", supportsVision: true,
+    label: "Llama 4 Scout (Vision)", id: "meta-llama/llama-4-scout-17b-16e-instruct", provider: "groq", category: "vision",
+    badge: "🖼️", description: "Multimodal Llama 4 Scout — understands images", supportsVision: true,
   },
 ];
 
@@ -155,8 +164,8 @@ export function routesFor(cfg: ModelConfig): ModelRoute[] {
 const DEFAULTS_BY_CATEGORY: Record<ModelCategory, string> = {
   reasoning: "openai/gpt-oss-120b",
   coding: "qwen/qwen3-32b",
-  creative: "moonshotai/kimi-k2-instruct",
-  vision: "meta-llama/llama-4-maverick-17b-128e-instruct",
+  creative: "moonshotai/kimi-k2.6",
+  vision: "meta-llama/llama-4-scout-17b-16e-instruct",
   general: DEFAULT_MODEL,
 };
 

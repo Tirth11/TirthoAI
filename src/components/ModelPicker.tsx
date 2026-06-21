@@ -146,10 +146,7 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
 
             {categories.map((cat) => {
               const meta = CATEGORY_META[cat];
-              const items = MODELS.filter((m) => m.category === cat).filter((m) => {
-                const h = health[m.id];
-                return !h || h.ok;
-              });
+              const items = MODELS.filter((m) => m.category === cat);
               if (items.length === 0) return null;
               return (
                 <div key={cat} className="mb-2">
@@ -199,13 +196,6 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
                 </div>
               );
             })}
-
-            {Object.values(health).some((h) => !h.ok) && (
-              <div className="mb-2 flex items-start gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[10px] text-amber-600 dark:text-amber-400">
-                <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
-                <span>Some models are hidden — their provider failed a recent health check.</span>
-              </div>
-            )}
 
             {!hideUserModels && (
               <Link

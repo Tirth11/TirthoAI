@@ -67,7 +67,6 @@ export function CompareDialog({ open, onClose, prompt, history, storageKey = "ti
   const grouped = useMemo(() => {
     const by: Record<string, typeof MODELS> = {};
     for (const m of MODELS) {
-      if (isModelDown(m.id, health)) continue; // hide unhealthy models from selection
       (by[m.category] ||= []).push(m);
     }
     return by;
