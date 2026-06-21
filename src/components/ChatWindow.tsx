@@ -45,6 +45,8 @@ interface Props {
   guest?: boolean;
   onGuestSignUp?: () => void;
   onGuestSignIn?: () => void;
+  /** Open a compare result as a new continuable chat thread. */
+  onOpenInChat?: (modelId: string, userText: string, assistantText: string) => void | Promise<void>;
 }
 
 const TEXT_EXTS = [".txt", ".md", ".csv", ".json", ".log", ".html", ".xml", ".yaml", ".yml"];
@@ -97,6 +99,7 @@ export function ChatWindow({
   guest = false,
   onGuestSignUp,
   onGuestSignIn,
+  onOpenInChat,
 }: Props) {
   const { credits: authedCredits, refresh: refreshCredits } = useCredits(guest ? undefined : userId);
   const [guestCredits, setGuestCreditsState] = useState<number>(() =>
@@ -228,7 +231,7 @@ export function ChatWindow({
     [guest],
   );
 
-  const { messages, sendMessage, status, stop } = useChat({
+  const { messages, sendMessage, status, stop, setMessages } = useChat({
     id: conversation.id,
     messages: initialMessages ?? [],
     transport,
@@ -237,6 +240,18 @@ export function ChatWindow({
       if (!guest) refreshCredits();
     },
   });
+
+  // Hydrate the chat with previously-saved messages once they load from the DB.
+  // useChat only reads `messages` at creation, so async-loaded history must be
+  // pushed in via setMessages — otherwise a refresh shows an empty chat even
+  // though the messages were saved. Runs once per conversation (this component
+  // is keyed by conversation.id, so hydratedRef resets when switching chats).
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (hydratedRef.current || initialMessages === null) return;
+    hydratedRef.current = true;
+    if (initialMessages.length > 0) setMessages(initialMessages);
+  }, [initialMessages, setMessages]);
 
   const isLoading = status === "submitted" || status === "streaming";
 
@@ -1002,6 +1017,7 @@ export function ChatWindow({
           onClose={() => setShowCompare(false)}
           prompt={input}
           history={messages}
+          onOpenInChat={onOpenInChat}
         />
       )}
 

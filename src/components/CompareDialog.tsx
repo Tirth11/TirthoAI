@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, X, Crown, Zap, AlertTriangle, Copy, Check } from "lucide-react";
+import { Loader2, X, Crown, Zap, AlertTriangle, Copy, Check, MessageSquarePlus } from "lucide-react";
 import { toast } from "sonner";
 import { MODELS, getModelById, DEFAULT_MODEL, CATEGORY_META, type ModelCategory } from "@/lib/models";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,8 @@ interface Props {
   onClose: () => void;
   prompt: string;
   history: UIMessage[];
+  /** Open a result as a new continuable chat thread with that model. */
+  onOpenInChat?: (modelId: string, userText: string, assistantText: string) => void | Promise<void>;
   /** Persist last-used selection for this user across sessions. */
   storageKey?: string;
 }
@@ -26,7 +28,7 @@ const DEFAULT_PICK = [
 
 const MAX_PICK = 4;
 
-export function CompareDialog({ open, onClose, prompt, history, storageKey = "tirthoai.compare.models.v1" }: Props) {
+export function CompareDialog({ open, onClose, prompt, history, onOpenInChat, storageKey = "tirthoai.compare.models.v1" }: Props) {
   const [picked, setPicked] = useState<string[]>(() => {
     if (typeof window === "undefined") return DEFAULT_PICK;
     try {
@@ -265,7 +267,19 @@ export function CompareDialog({ open, onClose, prompt, history, storageKey = "ti
           )}
 
           {results && (
-            <ResultsGrid results={results} winnerModelId={winner?.modelId ?? null} prompt={prompt} />
+            <ResultsGrid
+              results={results}
+              winnerModelId={winner?.modelId ?? null}
+              prompt={prompt}
+              onOpen={
+                onOpenInChat
+                  ? (r) => {
+                      onOpenInChat(r.modelId, prompt, r.text ?? "");
+                      onClose();
+                    }
+                  : undefined
+              }
+            />
           )}
 
           {error && (
@@ -321,10 +335,12 @@ function ResultsGrid({
   results,
   winnerModelId,
   prompt,
+  onOpen,
 }: {
   results: CompareResult[];
   winnerModelId: string | null;
   prompt: string;
+  onOpen?: (r: CompareResult) => void;
 }) {
   return (
     <div>
@@ -336,14 +352,14 @@ function ResultsGrid({
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         {results.map((r) => (
-          <ResultCard key={r.modelId} r={r} isWinner={r.ok && r.modelId === winnerModelId} />
+          <ResultCard key={r.modelId} r={r} isWinner={r.ok && r.modelId === winnerModelId} onOpen={onOpen} />
         ))}
       </div>
     </div>
   );
 }
 
-function ResultCard({ r, isWinner }: { r: CompareResult; isWinner: boolean }) {
+function ResultCard({ r, isWinner, onOpen }: { r: CompareResult; isWinner: boolean; onOpen?: (r: CompareResult) => void }) {
   const [copied, setCopied] = useState(false);
   const cfg = getModelById(r.modelId);
   const total = r.usage?.totalTokens ?? 0;
@@ -411,7 +427,19 @@ function ResultCard({ r, isWinner }: { r: CompareResult; isWinner: boolean }) {
         )}
       </div>
       {r.ok && r.text && (
-        <div className="shrink-0 border-t border-border px-3 py-1.5 text-right">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border px-3 py-1.5">
+          {onOpen ? (
+            <button
+              type="button"
+              onClick={() => onOpen(r)}
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/10"
+              title="Continue chatting with this model"
+            >
+              <MessageSquarePlus className="h-3 w-3" /> Open in chat
+            </button>
+          ) : (
+            <span />
+          )}
           <button
             type="button"
             onClick={copy}

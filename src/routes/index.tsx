@@ -5,6 +5,7 @@ import { ChatWindow } from "@/components/ChatWindow";
 import { AuthScreen } from "@/components/AuthScreen";
 import { BrandedLoader } from "@/components/BrandedLoader";
 import { ChatDB, type DBConversation } from "@/lib/chat-db";
+import type { UIMessage } from "ai";
 import { DEFAULT_MODEL } from "@/lib/models";
 import { ModelCache } from "@/lib/model-cache";
 import { useAuthSession } from "@/hooks/use-auth";
@@ -148,6 +149,27 @@ function ChatLayout({ userEmail, userId }: { userEmail: string; userId: string }
     setSidebarOpen(false);
   };
 
+  // Open a model's compare result as a new chat thread (seeded with the prompt +
+  // that model's answer) so the user can continue one-on-one with that model.
+  const handleOpenInChat = async (modelId: string, userText: string, assistantText: string) => {
+    const conv = await ChatDB.createConversation(modelId);
+    const title = userText.trim().replace(/\s+/g, " ").slice(0, 40) || "Compared chat";
+    await ChatDB.updateConversation(conv.id, { title });
+    await ChatDB.insertMessage(conv.id, {
+      id: crypto.randomUUID(),
+      role: "user",
+      parts: [{ type: "text", text: userText }],
+    } as UIMessage);
+    await ChatDB.insertMessage(conv.id, {
+      id: crypto.randomUUID(),
+      role: "assistant",
+      parts: [{ type: "text", text: assistantText }],
+    } as UIMessage);
+    await refresh();
+    setActiveId(conv.id);
+    setSidebarOpen(false);
+  };
+
   const handleDelete = async (id: string) => {
     await ChatDB.deleteConversation(id);
     const list = await refresh();
@@ -203,6 +225,7 @@ function ChatLayout({ userEmail, userId }: { userEmail: string; userId: string }
             onOpenSidebar={() => setSidebarOpen(true)}
             userEmail={userEmail}
             userId={userId}
+            onOpenInChat={handleOpenInChat}
           />
         )}
       </main>
