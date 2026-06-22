@@ -75,6 +75,34 @@ async function probeGroq(modelId: string, key: string): Promise<ModelHealth> {
   }
 }
 
+async function probeGemini(modelId: string, key: string): Promise<ModelHealth> {
+  const t0 = Date.now();
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12_000);
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+      method: "POST",
+      signal: ctrl.signal,
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: modelId,
+        messages: [{ role: "user", content: "hi" }],
+        max_tokens: 1,
+        stream: false,
+      }),
+    });
+    clearTimeout(timer);
+    return { ok: res.ok, provider: "gemini", status: res.status, latencyMs: Date.now() - t0 };
+  } catch (e) {
+    return {
+      ok: false,
+      provider: "gemini",
+      error: e instanceof Error ? e.message.slice(0, 120) : "network_error",
+      latencyMs: Date.now() - t0,
+    };
+  }
+}
+
 async function probePollinations(modelId: string): Promise<ModelHealth> {
   const t0 = Date.now();
   try {
@@ -125,11 +153,13 @@ async function runReport(): Promise<HealthReport> {
   const nvidiaKey = process.env.NVIDIA_API_KEY;
   const groqKey = process.env.GROQ_API_KEY;
   const openrouterKey = process.env.OPENROUTER_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY;
 
   const nvidiaModels = MODELS.filter((m) => m.provider === "nvidia");
   const groqModels = MODELS.filter((m) => m.provider === "groq");
   const pollModels = MODELS.filter((m) => m.provider === "pollinations");
   const orModels = MODELS.filter((m) => m.provider === "openrouter");
+  const geminiModels = MODELS.filter((m) => m.provider === "gemini");
   const pollProbes = pollModels.map((m) => probePollinations(m.id).then((h) => [m.id, h] as const));
   const orProbes = openrouterKey
     ? orModels.map((m) => probeOpenRouter(m.id, openrouterKey).then((h) => [m.id, h] as const))
@@ -147,7 +177,13 @@ async function runReport(): Promise<HealthReport> {
         Promise.resolve([m.id, { ok: false, provider: "groq", error: "no_key" }] as const),
       );
 
-  const settled = await Promise.all([...nvProbes, ...groqProbes, ...pollProbes, ...orProbes]);
+  const geminiProbes = geminiKey
+    ? geminiModels.map((m) => probeGemini(m.id, geminiKey).then((h) => [m.id, h] as const))
+    : geminiModels.map((m) =>
+        Promise.resolve([m.id, { ok: false, provider: "gemini", error: "no_key" }] as const),
+      );
+
+  const settled = await Promise.all([...nvProbes, ...groqProbes, ...pollProbes, ...orProbes, ...geminiProbes]);
   const providerResults = settled as ReadonlyArray<readonly [string, ModelHealth]>;
 
   const models: Record<string, ModelHealth> = {};

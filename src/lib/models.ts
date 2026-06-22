@@ -1,6 +1,6 @@
 export type ModelCategory = "reasoning" | "coding" | "creative" | "vision" | "general";
 
-export type ModelProvider = "nvidia" | "anthropic" | "perplexity" | "groq" | "pollinations" | "openrouter";
+export type ModelProvider = "nvidia" | "anthropic" | "perplexity" | "groq" | "pollinations" | "openrouter" | "gemini" | "together";
 
 /** A concrete provider route: which gateway + the model id on that gateway. */
 export interface ModelRoute {
@@ -61,6 +61,10 @@ export const MODELS: ModelConfig[] = [
     badge: "💨", description: "Mistral Small 4 — efficient",
   },
   {
+    label: "Gemini 2.5 Flash", id: "gemini-2.5-flash", provider: "gemini", category: "general",
+    badge: "✨", description: "Google Gemini 2.5 Flash — fast & multimodal", supportsVision: true,
+  },
+  {
     label: "Free Assistant", id: "openai", provider: "pollinations", category: "general",
     badge: "🆓", description: "Completely free — no API key required",
   },
@@ -86,6 +90,10 @@ export const MODELS: ModelConfig[] = [
   {
     label: "Nemotron Super 49B", id: "nvidia/llama-3.3-nemotron-super-49b-v1.5", provider: "nvidia", category: "reasoning",
     badge: "🛰️", description: "NVIDIA Nemotron Super 49B",
+  },
+  {
+    label: "MiniMax M3", id: "minimax/minimax-m3", provider: "openrouter", category: "reasoning",
+    badge: "🔷", description: "MiniMax M3 — strong agentic reasoning (via OpenRouter)",
   },
 
   // ── Coding ──
@@ -118,6 +126,15 @@ export const MODELS: ModelConfig[] = [
   {
     label: "Llama 4 Scout (Vision)", id: "meta-llama/llama-4-scout-17b-16e-instruct", provider: "groq", category: "vision",
     badge: "🖼️", description: "Multimodal Llama 4 Scout — understands images", supportsVision: true,
+    fallbacks: [
+      { provider: "gemini", id: "gemini-2.5-flash" },
+      { provider: "gemini", id: "gemini-2.5-pro" },
+    ],
+  },
+  {
+    label: "Gemini 2.5 Pro (Vision)", id: "gemini-2.5-pro", provider: "gemini", category: "vision",
+    badge: "🔮", description: "Google Gemini 2.5 Pro — top-tier vision + reasoning", supportsVision: true,
+    fallbacks: [{ provider: "groq", id: "meta-llama/llama-4-scout-17b-16e-instruct" }],
   },
 ];
 
@@ -161,6 +178,33 @@ export function routesFor(cfg: ModelConfig): ModelRoute[] {
   return [{ provider: cfg.provider ?? "groq", id: cfg.id }, ...(cfg.fallbacks ?? [])];
 }
 
+/**
+ * Ordered, provider-tagged routes that accept image input. The server forces
+ * one of these whenever a request carries image content, so image parts never
+ * reach a text-only model (which providers reject with errors like NVIDIA's
+ * "multimodal processing is not enabled" or an OpenAI-compatible
+ * "messages[N].content must be a string"). Every route here is genuinely
+ * multimodal; they're tried in order until one has a configured key.
+ */
+export const VISION_ROUTES: ModelRoute[] = [
+  { provider: "groq", id: "meta-llama/llama-4-scout-17b-16e-instruct" },
+  { provider: "gemini", id: "gemini-2.5-flash" },
+  { provider: "gemini", id: "gemini-2.5-pro" },
+];
+
+/** Drop duplicate provider+id routes, preserving first-seen order. */
+export function dedupeRoutes(routes: ModelRoute[]): ModelRoute[] {
+  const seen = new Set<string>();
+  const out: ModelRoute[] = [];
+  for (const r of routes) {
+    const k = `${r.provider}:${r.id}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(r);
+  }
+  return out;
+}
+
 const DEFAULTS_BY_CATEGORY: Record<ModelCategory, string> = {
   reasoning: "openai/gpt-oss-120b",
   coding: "qwen/qwen3-32b",
@@ -168,6 +212,10 @@ const DEFAULTS_BY_CATEGORY: Record<ModelCategory, string> = {
   vision: "meta-llama/llama-4-scout-17b-16e-instruct",
   general: DEFAULT_MODEL,
 };
+
+/** The default vision model id — used when an image is attached but the active
+ *  model can't see. Kept in sync with DEFAULTS_BY_CATEGORY.vision. */
+export const VISION_DEFAULT_MODEL = DEFAULTS_BY_CATEGORY.vision;
 
 export function autoSelectModel(text: string, hasImage: boolean): string {
   if (hasImage) return DEFAULTS_BY_CATEGORY.vision;

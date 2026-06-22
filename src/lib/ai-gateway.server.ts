@@ -43,6 +43,32 @@ export function createGroqProvider(groqApiKey: string) {
   });
 }
 
+// Google Gemini via its OpenAI-compatible endpoint. Natively multimodal, so it
+// doubles as a vision route (see VISION_ROUTES in models.ts). Model ids are the
+// bare Gemini names (e.g. "gemini-2.5-flash"), NOT prefixed with "google/".
+export function createGeminiProvider(geminiApiKey: string) {
+  return createOpenAICompatible({
+    name: "gemini",
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
+    headers: {
+      Authorization: `Bearer ${geminiApiKey}`,
+    },
+  });
+}
+
+// Together AI — OpenAI-compatible, hosts many open models (Llama, DeepSeek,
+// Qwen, etc.) on fast inference. Model ids are Together's own (e.g.
+// "meta-llama/Llama-3.3-70B-Instruct-Turbo").
+export function createTogetherProvider(togetherApiKey: string) {
+  return createOpenAICompatible({
+    name: "together",
+    baseURL: "https://api.together.xyz/v1",
+    headers: {
+      Authorization: `Bearer ${togetherApiKey}`,
+    },
+  });
+}
+
 // Pollinations.ai — FREE, no API key (anonymous tier). OpenAI-compatible.
 // Sourced from the "no-cost-ai" catalog: lets users chat with zero setup/keys.
 export function createPollinationsProvider() {
@@ -74,6 +100,8 @@ export function providerUsable(p: ModelProvider): boolean {
   switch (p) {
     case "groq": return !!process.env.GROQ_API_KEY;
     case "nvidia": return !!process.env.NVIDIA_API_KEY;
+    case "gemini": return !!process.env.GEMINI_API_KEY;
+    case "together": return !!process.env.TOGETHER_API_KEY;
     case "openrouter": return !!process.env.OPENROUTER_API_KEY;
     case "anthropic": return !!process.env.ANTHROPIC_API_KEY;
     case "perplexity": return !!process.env.PERPLEXITY_API_KEY;
@@ -87,6 +115,8 @@ export function makeProviderModel(p: ModelProvider, id: string) {
   switch (p) {
     case "groq": return createGroqProvider(process.env.GROQ_API_KEY as string)(id);
     case "nvidia": return createNvidiaProvider(process.env.NVIDIA_API_KEY as string)(id);
+    case "gemini": return createGeminiProvider(process.env.GEMINI_API_KEY as string)(id);
+    case "together": return createTogetherProvider(process.env.TOGETHER_API_KEY as string)(id);
     case "openrouter": return createOpenRouterProvider(process.env.OPENROUTER_API_KEY as string)(id);
     case "anthropic": return createAnthropicProvider(process.env.ANTHROPIC_API_KEY as string)(id);
     case "perplexity": return createPerplexityProvider(process.env.PERPLEXITY_API_KEY as string)(id);

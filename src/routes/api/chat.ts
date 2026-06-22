@@ -1,5 +1,5 @@
 import { providerUsable, makeProviderModel } from "@/lib/ai-gateway.server";
-import { DEFAULT_MODEL, getModelById, routesFor, type ModelProvider, type ModelRoute } from "@/lib/models";
+import { DEFAULT_MODEL, getModelById, routesFor, VISION_ROUTES, dedupeRoutes, type ModelProvider, type ModelRoute } from "@/lib/models";
 import { isUserModelId, userModelRowId } from "@/lib/user-models-shared";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createFileRoute } from "@tanstack/react-router";
@@ -7,7 +7,16 @@ import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createClient } from "@supabase/supabase-js";
 
-type ChatRequestBody = { messages?: unknown; modelId?: unknown };
+type ChatRequestBody = {
+  messages?: unknown;
+  modelId?: unknown;
+  /** Per-chat persona / system prompt (optional). */
+  system?: unknown;
+  /** Sampling temperature 0–2 (optional). */
+  temperature?: unknown;
+  /** Max output tokens 1–8192 (optional). */
+  maxTokens?: unknown;
+};
 
 // Request-scoped Supabase client using the public (anon) key. With a user's
 // bearer token it acts as that authenticated user; without one it's the anon
@@ -91,9 +100,47 @@ export const Route = createFileRoute("/api/chat")({
 
         const requestedId = typeof modelId === "string" ? modelId : DEFAULT_MODEL;
 
+        // Optional per-chat generation controls — validated + clamped so a
+        // crafted client can't push absurd values into the provider.
+        const persona = typeof body.system === "string" ? body.system.trim().slice(0, 4000) : "";
+        const temperature =
+          typeof body.temperature === "number" && Number.isFinite(body.temperature)
+            ? Math.min(2, Math.max(0, body.temperature))
+            : undefined;
+        const maxOutputTokens =
+          typeof body.maxTokens === "number" && Number.isFinite(body.maxTokens)
+            ? Math.min(8192, Math.max(1, Math.floor(body.maxTokens)))
+            : undefined;
+        const baseSystem =
+          "You are TirthoAI, a friendly, capable multi-model AI assistant. " +
+          "Respond clearly and use markdown (headings, lists, fenced code blocks) when it improves clarity. " +
+          "If the user shares an image or file, refer to it naturally.";
+        // A custom persona replaces the personality but we still nudge markdown
+        // formatting so rendering stays consistent.
+        const systemPrompt = persona
+          ? `${persona}\n\nFormat responses with markdown (headings, lists, fenced code blocks) when it improves clarity.`
+          : baseSystem;
+
+        // Does the conversation carry any image content? Images can come from
+        // the current turn OR from earlier in the history — and either way the
+        // request can ONLY be served by a vision-capable model. A text follow-up
+        // in a chat that already has an image still ships that image part to the
+        // model, so we must check the whole message list, not just the last turn.
+        const hasImageContent =
+          messages.some(
+            (m) =>
+              Array.isArray((m as { parts?: unknown }).parts) &&
+              (m as { parts: Array<{ type?: string; mediaType?: string }> }).parts.some(
+                (p) =>
+                  p?.type === "file" &&
+                  typeof p?.mediaType === "string" &&
+                  p.mediaType.startsWith("image/"),
+              ),
+          );
+
         let model;
         let chosen = DEFAULT_MODEL;
-        let provider: "nvidia" | "anthropic" | "perplexity" | "groq" | "pollinations" | "openrouter" | "user" = "groq";
+        let provider: "nvidia" | "anthropic" | "perplexity" | "groq" | "pollinations" | "openrouter" | "gemini" | "together" | "user" = "groq";
 
         if (isUserModelId(requestedId)) {
           if (isGuest || !userId) {
@@ -179,18 +226,32 @@ export const Route = createFileRoute("/api/chat")({
           })(chosen);
         } else {
           const chosenConfig = getModelById(requestedId);
-          // Ordered routes: the model's primary provider + its backups, then a
-          // universal keyless fallback (Pollinations) so a request ALWAYS has a
-          // working route even if every keyed provider is unconfigured/down.
-          const explicit = chosenConfig
+          // Ordered routes: the model's primary provider + its backups.
+          const baseRoutes: ModelRoute[] = chosenConfig
             ? routesFor(chosenConfig)
             : [{ provider: "groq" as ModelProvider, id: requestedId }];
+          // When the request carries image content, force a vision-capable
+          // route. Image parts sent to a text-only model are rejected by the
+          // provider (NVIDIA: "multimodal processing is not enabled"; some
+          // OpenAI-compatible endpoints: "messages[N].content must be a
+          // string"). So we drop the requested route entirely unless it is
+          // itself a vision model, then fall through to the shared vision list.
+          const explicit: ModelRoute[] = hasImageContent
+            ? dedupeRoutes([
+                ...(chosenConfig?.supportsVision ? baseRoutes : []),
+                ...VISION_ROUTES,
+              ])
+            : baseRoutes;
           // Pick the first route whose provider is configured (primary preferred,
           // then backups). A keyless fallback (Pollinations) guarantees the
           // request always has a working route even if no keyed provider is set.
+          // (Pollinations is text-only here, so it's skipped when images are
+          // present — a vision route from VISION_ROUTES is used instead.)
           const route =
             explicit.find((r) => providerUsable(r.provider)) ??
-            ({ provider: "pollinations", id: "openai" } as ModelRoute);
+            (hasImageContent
+              ? (VISION_ROUTES.find((r) => providerUsable(r.provider)) ?? VISION_ROUTES[0])
+              : ({ provider: "pollinations", id: "openai" } as ModelRoute));
           provider = route.provider;
           chosen = route.id;
           model = makeProviderModel(route.provider, route.id);
@@ -248,6 +309,23 @@ export const Route = createFileRoute("/api/chat")({
             return { status: 500, code: "nvidia_request_failed", message: `NVIDIA request failed: ${safe.slice(0, 300)}` };
           }
 
+          if (provider === "gemini") {
+            if (status === 401 || status === 403 || /API_KEY_INVALID|API key not valid/i.test(safe)) {
+              return {
+                status: 401,
+                code: "gemini_unauthorized",
+                message:
+                  "Google rejected the Gemini API key. GEMINI_API_KEY is missing or invalid — generate a key at https://aistudio.google.com/apikey and set it on the server.",
+              };
+            }
+            if (status === 404) {
+              return { status: 404, code: "gemini_model_not_found", message: `Gemini returned 404 for model "${chosen}".` };
+            }
+            if (status === 429) {
+              return { status: 429, code: "gemini_rate_limited", message: "Gemini rate limit / quota hit (429). Retry shortly." };
+            }
+          }
+
           if (status === 401 || status === 403) {
             return { status, code: "provider_unauthorized", message: "The AI provider rejected the request (check the API key)." };
           }
@@ -260,10 +338,9 @@ export const Route = createFileRoute("/api/chat")({
         try {
           const result = streamText({
             model,
-            system:
-              "You are TirthoAI, a friendly, capable multi-model AI assistant. " +
-              "Respond clearly and use markdown (headings, lists, fenced code blocks) when it improves clarity. " +
-              "If the user shares an image or file, refer to it naturally.",
+            system: systemPrompt,
+            ...(temperature !== undefined ? { temperature } : {}),
+            ...(maxOutputTokens !== undefined ? { maxOutputTokens } : {}),
             messages: await convertToModelMessages(messages as UIMessage[]),
             onError: ({ error }) => {
               const c = classifyProviderError(error);

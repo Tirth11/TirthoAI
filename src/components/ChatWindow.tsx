@@ -17,13 +17,21 @@ import {
   Square,
   Zap,
   GitCompare,
+  SlidersHorizontal,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ModelPicker } from "@/components/ModelPicker";
-import { autoSelectModel, getModelById, CATEGORY_META } from "@/lib/models";
+import { autoSelectModel, getModelById, CATEGORY_META, VISION_DEFAULT_MODEL } from "@/lib/models";
 import { ChatDB, type DBConversation } from "@/lib/chat-db";
 import { ModelCache } from "@/lib/model-cache";
+import { ChatSettings, type ChatSettingsEntry } from "@/lib/chat-settings";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useCredits, FREE_CREDITS } from "@/hooks/use-credits";
@@ -126,6 +134,10 @@ export function ChatWindow({
   const [autoMode, setAutoMode] = useState(true);
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [chatSettings, setChatSettingsState] = useState<ChatSettingsEntry>(() =>
+    ChatSettings.get(conversation.id),
+  );
+  const [showSettings, setShowSettings] = useState(false);
   const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -443,6 +455,8 @@ export function ChatWindow({
     setModelId(c?.modelId ?? conversation.model_id);
     setModelUpdatedAt(c?.updatedAt ?? conversation.model_updated_at ?? conversation.updated_at);
     setPreviousModelId(c?.previousModelId);
+    setChatSettingsState(ChatSettings.get(conversation.id));
+    setShowSettings(false);
     setInput("");
     setAttachments([]);
     stickToBottomRef.current = true;
@@ -460,6 +474,43 @@ export function ChatWindow({
     const arr = Array.from(files).slice(0, 5);
     setAttachments((prev) => [...prev, ...arr].slice(0, 5));
   };
+
+  // Merge a patch into this thread's settings. We persist the NORMALIZED value
+  // (trimmed/clamped) but keep the raw value in UI state so typing trailing
+  // spaces in the persona box still works; the server re-validates anyway.
+  const updateChatSettings = useCallback(
+    (patch: Partial<ChatSettingsEntry>) => {
+      setChatSettingsState((prev) => {
+        const next = { ...prev, ...patch };
+        ChatSettings.set(conversation.id, next);
+        return next;
+      });
+    },
+    [conversation.id],
+  );
+
+  const resetChatSettings = useCallback(() => {
+    ChatSettings.remove(conversation.id);
+    setChatSettingsState({});
+  }, [conversation.id]);
+
+  const hasCustomSettings = Boolean(
+    chatSettings.system?.trim() ||
+      chatSettings.temperature !== undefined ||
+      chatSettings.maxTokens !== undefined,
+  );
+
+  // Build the per-request body: model + any custom generation controls.
+  const buildRequestBody = useCallback(
+    (useModelId: string): Record<string, unknown> => {
+      const b: Record<string, unknown> = { modelId: useModelId };
+      if (chatSettings.system?.trim()) b.system = chatSettings.system.trim();
+      if (typeof chatSettings.temperature === "number") b.temperature = chatSettings.temperature;
+      if (typeof chatSettings.maxTokens === "number") b.maxTokens = chatSettings.maxTokens;
+      return b;
+    },
+    [chatSettings],
+  );
 
   const submit = async (textOverride?: string) => {
     const raw = (textOverride ?? input).trim();
@@ -495,7 +546,9 @@ export function ChatWindow({
     if (autoMode) {
       useModelId = autoSelectModel(raw, hasImage);
     } else if (hasImage && !getModelById(modelId)?.supportsVision) {
-      useModelId = "google/gemini-2.5-pro";
+      // Active model can't see — switch to the default vision model (a real
+      // catalog id; the server will still re-route to any usable vision route).
+      useModelId = VISION_DEFAULT_MODEL;
     }
     setModelId(useModelId);
     if (useModelId !== modelId) {
@@ -528,7 +581,7 @@ export function ChatWindow({
     stickToBottomRef.current = true;
 
     pendingPromptModelRef.current = useModelId;
-    await sendMessage({ text: finalText, files: fileList }, { body: { modelId: useModelId } });
+    await sendMessage({ text: finalText, files: fileList }, { body: buildRequestBody(useModelId) });
   };
 
   // Tag each new user message with the model used + actual credit cost
@@ -654,6 +707,104 @@ export function ChatWindow({
               {credits}/{totalCredits}
             </span>
           )}
+          <Popover open={showSettings} onOpenChange={setShowSettings}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition",
+                  hasCustomSettings
+                    ? "border-primary/50 bg-primary/5 text-primary"
+                    : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground",
+                )}
+                aria-label="Chat settings"
+                title="Persona, temperature & max tokens"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                {hasCustomSettings && (
+                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary" />
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Chat settings</h3>
+                {hasCustomSettings && (
+                  <button
+                    type="button"
+                    onClick={resetChatSettings}
+                    className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                  >
+                    <RotateCcw className="h-3 w-3" /> Reset
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="chat-persona" className="text-xs">
+                  Persona / system prompt
+                </Label>
+                <Textarea
+                  id="chat-persona"
+                  rows={4}
+                  value={chatSettings.system ?? ""}
+                  onChange={(e) => updateChatSettings({ system: e.target.value })}
+                  placeholder="e.g. You are a senior Go engineer. Answer tersely, lead with code."
+                  className="resize-none text-sm"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Applies to every message in this chat. Leave blank for the default assistant.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="chat-temperature" className="text-xs">
+                    Temperature
+                  </Label>
+                  <span className="tabular-nums text-[11px] text-muted-foreground">
+                    {chatSettings.temperature === undefined
+                      ? "default (0.7)"
+                      : chatSettings.temperature.toFixed(1)}
+                  </span>
+                </div>
+                <Slider
+                  id="chat-temperature"
+                  min={0}
+                  max={2}
+                  step={0.1}
+                  value={[chatSettings.temperature ?? 0.7]}
+                  onValueChange={([v]) => updateChatSettings({ temperature: v })}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Lower = focused &amp; deterministic · higher = creative &amp; varied.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="chat-maxtokens" className="text-xs">
+                  Max output tokens
+                </Label>
+                <Input
+                  id="chat-maxtokens"
+                  type="number"
+                  min={1}
+                  max={8192}
+                  value={chatSettings.maxTokens ?? ""}
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value, 10);
+                    updateChatSettings({ maxTokens: Number.isFinite(n) ? n : undefined });
+                  }}
+                  placeholder="default"
+                  className="text-sm"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Caps the reply length (1–8192). Blank = provider default.
+                </p>
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <div className="min-w-0 max-w-[60vw] sm:max-w-xs">
             <ModelPicker
               modelId={modelId}
