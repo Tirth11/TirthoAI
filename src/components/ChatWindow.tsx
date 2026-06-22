@@ -726,7 +726,12 @@ export function ChatWindow({
                 )}
               </button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-80 space-y-4">
+            <PopoverContent
+              align="end"
+              sideOffset={8}
+              collisionPadding={12}
+              className="w-80 max-w-[calc(100vw-1.5rem)] max-h-[var(--radix-popover-content-available-height)] space-y-4 overflow-y-auto overscroll-contain"
+            >
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Chat settings</h3>
                 {hasCustomSettings && (
