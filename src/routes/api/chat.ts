@@ -166,50 +166,32 @@ export const Route = createFileRoute("/api/chat")({
           })(chosen);
         } else {
           const chosenConfig = getModelById(requestedId);
-          chosen = chosenConfig?.id ?? DEFAULT_MODEL;
+          const requestedModel = chosenConfig?.id ?? DEFAULT_MODEL;
           const builtinProvider = chosenConfig?.provider ?? "lovable";
-          if (builtinProvider === "nvidia") {
-            const nvKey = process.env.NVIDIA_API_KEY;
-            if (!nvKey) {
-              return new Response(
-                JSON.stringify({ error: "missing_nvidia_key", message: "NVIDIA provider is not configured on the server." }),
-                { status: 500, headers: { "Content-Type": "application/json" } },
-              );
-            }
-            provider = "nvidia";
-            model = createNvidiaProvider(nvKey)(chosen);
-          } else if (builtinProvider === "anthropic") {
-            const aKey = process.env.ANTHROPIC_API_KEY;
-            if (!aKey) {
-              return new Response(
-                JSON.stringify({ error: "missing_anthropic_key", message: "Claude isn't configured. Add ANTHROPIC_API_KEY in Settings." }),
-                { status: 500, headers: { "Content-Type": "application/json" } },
-              );
-            }
-            provider = "anthropic";
-            model = createAnthropicProvider(aKey)(chosen);
-          } else if (builtinProvider === "perplexity") {
-            const pKey = process.env.PERPLEXITY_API_KEY;
-            if (!pKey) {
-              return new Response(
-                JSON.stringify({ error: "missing_perplexity_key", message: "Perplexity isn't configured. Add PERPLEXITY_API_KEY in Settings." }),
-                { status: 500, headers: { "Content-Type": "application/json" } },
-              );
-            }
-            provider = "perplexity";
-            model = createPerplexityProvider(pKey)(chosen);
-          } else if (builtinProvider === "groq") {
-            const gKey = process.env.GROQ_API_KEY;
-            if (!gKey) {
-              return new Response(
-                JSON.stringify({ error: "missing_groq_key", message: "Groq isn't configured on the server." }),
-                { status: 500, headers: { "Content-Type": "application/json" } },
-              );
-            }
-            provider = "groq";
-            model = createGroqProvider(gKey)(chosen);
+          const nvKey = process.env.NVIDIA_API_KEY;
+          const aKey = process.env.ANTHROPIC_API_KEY;
+          const pKey = process.env.PERPLEXITY_API_KEY;
+          const gKey = process.env.GROQ_API_KEY;
+
+          // Auto-route to a *working* agent: use the requested provider only when its
+          // key is configured; otherwise fall back to the always-on Lovable gateway
+          // (LOVABLE_API_KEY is guaranteed above) instead of returning a hard error.
+          if (builtinProvider === "nvidia" && nvKey) {
+            provider = "nvidia"; chosen = requestedModel; model = createNvidiaProvider(nvKey)(chosen);
+          } else if (builtinProvider === "anthropic" && aKey) {
+            provider = "anthropic"; chosen = requestedModel; model = createAnthropicProvider(aKey)(chosen);
+          } else if (builtinProvider === "perplexity" && pKey) {
+            provider = "perplexity"; chosen = requestedModel; model = createPerplexityProvider(pKey)(chosen);
+          } else if (builtinProvider === "groq" && gKey) {
+            provider = "groq"; chosen = requestedModel; model = createGroqProvider(gKey)(chosen);
           } else {
+            // Requested provider isn't configured (or is Lovable) → use the Lovable
+            // gateway. Keep the requested model only when it's a Lovable model.
+            if (builtinProvider !== "lovable") {
+              console.warn(`[chat] provider="${builtinProvider}" not configured — falling back to Lovable gateway`);
+            }
             provider = "lovable";
+            chosen = builtinProvider === "lovable" ? requestedModel : DEFAULT_MODEL;
             model = createLovableAiGatewayProvider(key)(chosen);
           }
         }

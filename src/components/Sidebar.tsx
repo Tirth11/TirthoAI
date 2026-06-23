@@ -1,5 +1,6 @@
 import {
   Plus,
+  Upload,
   MessageSquare,
   Trash2,
   Pencil,
@@ -28,6 +29,7 @@ interface Props {
   activeId: string | null;
   onSelect: (id: string) => void;
   onNew: () => void;
+  onImport?: () => void;
   onDelete: (id: string) => void;
   onRename: (id: string, title: string) => void;
   userEmail: string;
@@ -63,6 +65,7 @@ export function Sidebar({
   activeId,
   onSelect,
   onNew,
+  onImport,
   onDelete,
   onRename,
   userEmail,
@@ -157,6 +160,17 @@ export function Sidebar({
             New Chat
           </button>
 
+          {onImport && (
+            <button
+              onClick={onImport}
+              data-testid="import-chat-button"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-sidebar-border px-3 py-2 text-xs font-semibold text-sidebar-foreground transition hover:bg-sidebar-accent"
+              title="Import a chat someone shared with you (.tirthoai.json)"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Import shared chat
+            </button>
+          )}
         </div>
 
         {/* Search */}

@@ -35,6 +35,8 @@ import {
 } from "@/lib/guest";
 import { SignupPrompt } from "@/components/SignupPrompt";
 import { CompareDialog } from "@/components/CompareDialog";
+import { copyMessage } from "@/lib/chat-export";
+import { ChatExportMenu } from "@/components/ChatExportMenu";
 
 interface Props {
   conversation: DBConversation;
@@ -310,7 +312,28 @@ export function ChatWindow({
     [],
   );
 
-  // Persist new messages when streaming finishes
+  // Persist the user's message to the DB the instant it is sent — before the
+  // model has even replied. This guarantees a logged-in user's prompt survives a
+  // refresh, navigation, network drop, or a failed/aborted AI response. (We mark
+  // the id as persisted BEFORE awaiting so a concurrent render can't double-insert.)
+  useEffect(() => {
+    if (guest) return;
+    const unsaved = messages.filter(
+      (m) => m.role === "user" && !persistedIdsRef.current.has(m.id),
+    );
+    if (unsaved.length === 0) return;
+    (async () => {
+      for (const m of unsaved) {
+        const hasText = m.parts.some((p) => p.type === "text" && p.text);
+        const hasFile = m.parts.some((p) => p.type === "file");
+        if (!hasText && !hasFile) continue;
+        persistedIdsRef.current.add(m.id);
+        await ChatDB.insertMessage(conversation.id, m);
+      }
+    })();
+  }, [messages, conversation.id, guest]);
+
+  // Persist the assistant's reply (and anything still unsaved) once it completes.
   useEffect(() => {
     if (status !== "ready" || guest) return;
     (async () => {
@@ -319,8 +342,8 @@ export function ChatWindow({
         const hasText = m.parts.some((p) => p.type === "text" && p.text);
         const hasFile = m.parts.some((p) => p.type === "file");
         if (!hasText && !hasFile) continue;
-        await ChatDB.insertMessage(conversation.id, m);
         persistedIdsRef.current.add(m.id);
+        await ChatDB.insertMessage(conversation.id, m);
       }
       onConversationChange();
     })();
@@ -618,6 +641,7 @@ export function ChatWindow({
               {credits}/{totalCredits}
             </span>
           )}
+          <ChatExportMenu title={conversation.title} messages={messages} category={conversation.category} modelId={modelId} />
           <div className="min-w-0 max-w-[60vw] sm:max-w-xs">
             <ModelPicker
               modelId={modelId}
@@ -1111,7 +1135,9 @@ const MessageBubble = memo(function MessageBubble({
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(text);
+      // Copy rich HTML + clean plain text so pasting into Word/Docs is formatted
+      // and plain editors get no literal ** or ## markers.
+      await copyMessage(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {

@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useCallback, useSyncExternalStore } from "react";
+import { useEffect, useState, useCallback, useSyncExternalStore, useRef } from "react";
+import { toast } from "sonner";
+import type { UIMessage } from "ai";
+import { parseSharePayload } from "@/lib/chat-export";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatWindow } from "@/components/ChatWindow";
 import { AuthScreen } from "@/components/AuthScreen";
@@ -143,6 +146,34 @@ function ChatLayout({ userEmail, userId }: { userEmail: string; userId: string }
     setSidebarOpen(false);
   };
 
+  // Import a chat that someone shared as a .tirthoai.json file.
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const handleImportFile = async (file: File) => {
+    try {
+      const payload = parseSharePayload(await file.text());
+      const created = await ChatDB.createConversation(
+        payload.model_id || ModelCache.getLast() || DEFAULT_MODEL,
+        payload.category || "general",
+      );
+      await ChatDB.updateConversation(created.id, { title: payload.title || "Imported chat" });
+      for (const m of payload.messages) {
+        const msg = {
+          id: (globalThis.crypto?.randomUUID?.() ?? `imp_${Math.random().toString(36).slice(2)}`),
+          role: m.role,
+          parts: m.parts,
+        } as UIMessage;
+        await ChatDB.insertMessage(created.id, msg);
+      }
+      await refresh();
+      setActiveId(created.id);
+      setSidebarOpen(false);
+      toast.success("Chat imported");
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "Could not import that file");
+    }
+  };
+
   const handleSelect = (id: string) => {
     setActiveId(id);
     setSidebarOpen(false);
@@ -181,11 +212,23 @@ function ChatLayout({ userEmail, userId }: { userEmail: string; userId: string }
 
   return (
     <div className="flex h-dvh min-h-0 overflow-hidden bg-background text-foreground">
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleImportFile(f);
+          e.target.value = "";
+        }}
+      />
       <Sidebar
         conversations={conversations}
         activeId={activeId}
         onSelect={handleSelect}
         onNew={handleNew}
+        onImport={() => importInputRef.current?.click()}
         onDelete={handleDelete}
         onRename={handleRename}
         userEmail={userEmail}
