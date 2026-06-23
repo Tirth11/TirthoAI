@@ -88,10 +88,16 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
                 <span>{selectedBadge}</span>
                 <span className="max-w-[84px] truncate sm:max-w-[160px]">{selectedLabel}</span>
                 {selectedDown && (
-                  <span className="flex items-center gap-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-600 dark:text-amber-400">
-                    <AlertTriangle className="h-2.5 w-2.5" />
-                    {isGroqDown ? "Groq down" : "Down"}
-                    {fallbackModel && <span className="font-semibold normal-case">→ {fallbackModel.label}</span>}
+                  <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-600 dark:text-amber-400">
+                    <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                    {/* Keep the header compact on phones: show only the warning icon there,
+                        and the full "Down → fallback" detail from the sm breakpoint up. */}
+                    <span className="hidden sm:inline">{isGroqDown ? "Groq down" : "Down"}</span>
+                    {fallbackModel && (
+                      <span className="hidden font-semibold normal-case sm:inline">
+                        → {fallbackModel.label}
+                      </span>
+                    )}
                   </span>
                 )}
                 <ChevronDown className="h-3 w-3 text-muted-foreground" />
