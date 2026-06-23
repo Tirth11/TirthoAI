@@ -43,6 +43,8 @@ import {
 } from "@/lib/guest";
 import { SignupPrompt } from "@/components/SignupPrompt";
 import { CompareDialog } from "@/components/CompareDialog";
+import { copyMessage } from "@/lib/chat-export";
+import { ChatExportMenu } from "@/components/ChatExportMenu";
 
 interface Props {
   conversation: DBConversation;
@@ -810,6 +812,7 @@ export function ChatWindow({
             </PopoverContent>
           </Popover>
 
+          <ChatExportMenu title={conversation.title} messages={messages} category={conversation.category} modelId={modelId} />
           <div className="min-w-0 max-w-[60vw] sm:max-w-xs">
             <ModelPicker
               modelId={modelId}
@@ -1302,7 +1305,9 @@ const MessageBubble = memo(function MessageBubble({
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(text);
+      // Copy rich HTML + clean plain text so pasting into Word/Docs is formatted
+      // and plain editors get no literal ** or ## markers.
+      await copyMessage(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
