@@ -725,17 +725,23 @@ export function ChatWindow({
           {credits !== null && (
             <span
               className={cn(
-                "hidden sm:inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold shrink-0",
+                "items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold shrink-0",
+                // When credits are over, keep it visible on mobile too (it's important).
+                outOfCredits ? "inline-flex" : "hidden sm:inline-flex",
                 outOfCredits
                   ? "border-destructive/40 bg-destructive/10 text-destructive"
                   : credits < 50
                     ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
                     : "border-primary/30 bg-primary/5 text-primary",
               )}
-              title={`${credits} of ${totalCredits} free credits remaining`}
+              title={
+                outOfCredits
+                  ? "Credits over — top up to keep chatting"
+                  : `${credits} of ${totalCredits} free credits remaining`
+              }
             >
               <Zap className="h-3 w-3" />
-              {credits}/{totalCredits}
+              {outOfCredits ? "Credits over" : `${credits}/${totalCredits}`}
             </span>
           )}
           <Popover open={showSettings} onOpenChange={setShowSettings}>
@@ -843,6 +849,7 @@ export function ChatWindow({
 
           <div className="min-w-0 max-w-[60vw] sm:max-w-xs">
             <ModelPicker
+              outOfCredits={outOfCredits}
               modelId={modelId}
               onChange={(id) => {
                 if (id !== modelId) setPreviousModelId(modelId);

@@ -15,9 +15,11 @@ interface Props {
   onAutoToggle: (v: boolean) => void;
   /** When true, hide custom user models (e.g. guest mode). */
   hideUserModels?: boolean;
+  /** When true, the free credits are exhausted — disable selection, show red. */
+  outOfCredits?: boolean;
 }
 
-export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUserModels }: Props) {
+export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUserModels, outOfCredits = false }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { models: userModels } = useUserModels();
@@ -44,12 +46,14 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
   return (
     <div className="flex min-w-0 items-center gap-1.5 sm:gap-2" ref={ref}>
       <button
-        onClick={() => onAutoToggle(!autoMode)}
+        onClick={() => !outOfCredits && onAutoToggle(!autoMode)}
+        disabled={outOfCredits}
         className={cn(
           "flex shrink-0 items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs font-semibold transition sm:px-2.5",
           autoMode
             ? "border-primary bg-primary/15 text-primary"
-            : "border-border bg-card text-muted-foreground hover:border-primary/40"
+            : "border-border bg-card text-muted-foreground hover:border-primary/40",
+          outOfCredits && "opacity-50 cursor-not-allowed"
         )}
         title="Auto-pick the best model for each prompt"
       >
@@ -65,28 +69,40 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
           return (
             <>
               <button
-                onClick={() => setOpen((v) => !v)}
-                disabled={autoMode}
+                onClick={() => !outOfCredits && setOpen((v) => !v)}
+                disabled={autoMode || outOfCredits}
                 data-testid="model-picker-trigger"
                 data-model-id={modelId}
                 data-health={selectedDown ? "down" : "ok"}
+                data-out-of-credits={outOfCredits ? "true" : "false"}
                 data-fallback-id={fallbackModel?.id ?? ""}
                 title={
-                  selectedDown
+                  outOfCredits
+                    ? "Out of credits — top up to keep chatting"
+                    : selectedDown
                     ? `${selectedLabel} is unhealthy${
                         fallbackModel ? ` — auto-fallback to ${fallbackModel.label}` : ""
                       }`
                     : undefined
                 }
                 className={cn(
-                  "flex max-w-[44vw] items-center gap-1.5 rounded-lg border bg-card px-2 py-1.5 text-xs font-medium transition hover:border-primary/40 sm:max-w-none sm:gap-2 sm:px-3",
-                  selectedDown ? "border-amber-500/60" : "border-border",
+                  "flex max-w-[44vw] items-center gap-1.5 rounded-lg border bg-card px-2 py-1.5 text-xs font-medium transition sm:max-w-none sm:gap-2 sm:px-3",
+                  outOfCredits
+                    ? "border-destructive/60 bg-destructive/10 text-destructive cursor-not-allowed"
+                    : selectedDown
+                    ? "border-amber-500/60 hover:border-primary/40"
+                    : "border-border hover:border-primary/40",
                   autoMode && "opacity-60 cursor-not-allowed"
                 )}
               >
-                <span>{selectedBadge}</span>
+                <span className={cn(outOfCredits && "opacity-60")}>{selectedBadge}</span>
                 <span className="max-w-[84px] truncate sm:max-w-[160px]">{selectedLabel}</span>
-                {selectedDown && (
+                {outOfCredits ? (
+                  <span className="flex shrink-0 items-center gap-1 rounded-full bg-destructive/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-destructive">
+                    <AlertCircle className="h-2.5 w-2.5 shrink-0" />
+                    Credits over
+                  </span>
+                ) : selectedDown ? (
                   <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-600 dark:text-amber-400">
                     <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
                     {/* Keep the header compact on phones: show only the warning icon there,
@@ -98,7 +114,7 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
                       </span>
                     )}
                   </span>
-                )}
+                ) : null}
                 <ChevronDown className="h-3 w-3 text-muted-foreground" />
               </button>
             </>
@@ -135,6 +151,7 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
                     key={m.id}
                     model={m}
                     active={modelId === `${USER_MODEL_PREFIX}${m.id}`}
+                    disabled={outOfCredits}
                     onPick={() => {
                       onChange(`${USER_MODEL_PREFIX}${m.id}`);
                       setOpen(false);
@@ -156,19 +173,25 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
                   {items.map((m) => {
                     const active = m.id === modelId && m.label === selectedBuiltIn?.label;
                     const h = health[m.id];
+                    const down = h ? !h.ok : false; // model/agent not working
+                    const disabled = outOfCredits || down; // not selectable
                     return (
                       <button
                         key={m.label}
                         data-testid="model-option"
                         data-model-id={m.id}
                         data-health={h ? (h.ok ? "ok" : "down") : "unknown"}
+                        data-disabled={disabled ? "true" : "false"}
+                        disabled={disabled}
                         onClick={() => {
+                          if (disabled) return;
                           onChange(m.id);
                           setOpen(false);
                         }}
                         className={cn(
                           "flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-xs transition",
-                          active ? "bg-accent" : "hover:bg-accent/60"
+                          active ? "bg-accent" : disabled ? "" : "hover:bg-accent/60",
+                          disabled && "opacity-50 cursor-not-allowed"
                         )}
                       >
                         <span className="text-base leading-none">{m.badge}</span>
@@ -181,13 +204,20 @@ export function ModelPicker({ modelId, onChange, autoMode, onAutoToggle, hideUse
                                 title={`Healthy${h.latencyMs ? ` · ${h.latencyMs}ms` : ""}`}
                               />
                             )}
+                            {down && (
+                              <span className="flex items-center gap-1 rounded-full bg-destructive/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-destructive">
+                                <AlertCircle className="h-2.5 w-2.5" /> Off
+                              </span>
+                            )}
                             {m.supportsVision && (
                               <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-500">
                                 Vision
                               </span>
                             )}
                           </div>
-                          <p className="text-muted-foreground line-clamp-1">{m.description}</p>
+                          <p className="text-muted-foreground line-clamp-1">
+                            {down ? "Currently unavailable — try another model" : m.description}
+                          </p>
                         </div>
                         {active && <Check className="h-3.5 w-3.5 text-primary mt-0.5" />}
                       </button>
@@ -220,18 +250,22 @@ function UserModelRow({
   model,
   active,
   onPick,
+  disabled = false,
 }: {
   model: UserModelDTO;
   active: boolean;
   onPick: () => void;
+  disabled?: boolean;
 }) {
   const preset = presetFor(model.provider);
   return (
     <button
-      onClick={onPick}
+      onClick={() => !disabled && onPick()}
+      disabled={disabled}
       className={cn(
         "flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-xs transition",
-        active ? "bg-accent" : "hover:bg-accent/60",
+        active ? "bg-accent" : disabled ? "" : "hover:bg-accent/60",
+        disabled && "opacity-50 cursor-not-allowed",
       )}
     >
       <span className="text-base leading-none">{preset?.badge ?? "🧩"}</span>
