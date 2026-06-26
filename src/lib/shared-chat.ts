@@ -44,7 +44,13 @@ export async function createShareLink(args: {
     })
     .select("id")
     .single();
-  if (error) throw error;
+  if (error) {
+    // Surface the real Postgres/Supabase reason (e.g. table not migrated yet).
+    const hint = /relation .* does not exist|shared_chats/i.test(error.message || "")
+      ? " — run the shared_chats migration on your Supabase project."
+      : "";
+    throw new Error(`${error.message || "Share failed"}${hint}`);
+  }
   return `${window.location.origin}/share/${data.id}`;
 }
 

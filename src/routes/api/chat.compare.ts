@@ -78,7 +78,12 @@ export const Route = createFileRoute("/api/chat/compare")({
           if (typeof r === "number") remaining = r;
         }
 
-        const modelMessages = await convertToModelMessages(messages as UIMessage[]);
+        const modelMessages = await convertToModelMessages(
+          (messages as UIMessage[]).map((m) => ({
+            ...m,
+            parts: m.parts?.filter((p) => p.type !== "reasoning"),
+          }))
+        );
 
         const runOne = async (mid: string): Promise<CompareResult> => {
           const started = Date.now();

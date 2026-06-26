@@ -341,7 +341,12 @@ export const Route = createFileRoute("/api/chat")({
             system: systemPrompt,
             ...(temperature !== undefined ? { temperature } : {}),
             ...(maxOutputTokens !== undefined ? { maxOutputTokens } : {}),
-            messages: await convertToModelMessages(messages as UIMessage[]),
+            messages: await convertToModelMessages(
+              (messages as UIMessage[]).map((m) => ({
+                ...m,
+                parts: m.parts?.filter((p) => p.type !== "reasoning"),
+              }))
+            ),
             onError: ({ error }) => {
               const c = classifyProviderError(error);
               console.error(`[chat] provider=${provider} model=${chosen} code=${c.code} status=${c.status} :: ${c.message}`);
