@@ -45,6 +45,8 @@ import { SignupPrompt } from "@/components/SignupPrompt";
 import { CompareDialog } from "@/components/CompareDialog";
 import { copyMessage } from "@/lib/chat-export";
 import { ChatExportMenu } from "@/components/ChatExportMenu";
+import { createShareLink } from "@/lib/shared-chat";
+import { Share2 } from "lucide-react";
 
 interface Props {
   conversation: DBConversation;
@@ -254,6 +256,33 @@ export function ChatWindow({
       if (!guest) refreshCredits();
     },
   });
+
+  // Create a read-only share link (snapshot) and copy it to the clipboard.
+  // Recipients can VIEW the conversation at /share/:id but cannot prompt/continue it.
+  const [sharing, setSharing] = useState(false);
+  const handleShare = async () => {
+    if (sharing || messages.length === 0) return;
+    setSharing(true);
+    try {
+      const url = await createShareLink({
+        conversationId: conversation.id,
+        title: conversation.title,
+        category: conversation.category,
+        modelId,
+        messages,
+      });
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success("Read-only share link copied to clipboard");
+      } catch {
+        toast.success(`Share link: ${url}`);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not create share link");
+    } finally {
+      setSharing(false);
+    }
+  };
 
   // Hydrate the chat with previously-saved messages once they load from the DB.
   // useChat only reads `messages` at creation, so async-loaded history must be
@@ -812,7 +841,6 @@ export function ChatWindow({
             </PopoverContent>
           </Popover>
 
-          <ChatExportMenu title={conversation.title} messages={messages} category={conversation.category} modelId={modelId} />
           <div className="min-w-0 max-w-[60vw] sm:max-w-xs">
             <ModelPicker
               modelId={modelId}
@@ -1051,6 +1079,24 @@ export function ChatWindow({
         }}
       >
         <div className="mx-auto max-w-3xl">
+          {/* Bottom action bar — Export (downloads) + Share (read-only link) */}
+          {messages.length > 0 && (
+            <div className="mb-2 flex items-center justify-end gap-2">
+              <ChatExportMenu title={conversation.title} messages={messages} />
+              <button
+                type="button"
+                onClick={handleShare}
+                disabled={sharing}
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+                title="Create a read-only share link"
+                aria-label="Share a read-only link to this chat"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                <span>{sharing ? "Sharing…" : "Share"}</span>
+              </button>
+            </div>
+          )}
+
           {attachments.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
               {attachments.map((f, i) => (
