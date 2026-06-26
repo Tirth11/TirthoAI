@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Sparkles, Loader2, Eye, ArrowRight } from "lucide-react";
 import { fetchSharedChat, type SharedChatRow } from "@/lib/shared-chat";
 import { markdownToHtml } from "@/lib/chat-export";
+import { enterGuestMode } from "@/lib/guest";
 
 export const Route = createFileRoute("/share/$id")({
   component: SharedChatPage,
@@ -25,6 +26,15 @@ const textOf = (m: SharedChatRow["messages"][number]) =>
 function SharedChatPage() {
   const navigate = useNavigate();
   const { id } = useParams({ from: "/share/$id" });
+
+  // "Start your own chat" — drop visitors straight into a usable free chat.
+  // Signed-in users land in their full app (Index clears guest mode when a
+  // session exists); everyone else enters free/guest mode and can chat right
+  // away, then sign up to save their history.
+  const startOwnChat = () => {
+    enterGuestMode();
+    navigate({ to: "/" });
+  };
   const [loading, setLoading] = useState(true);
   const [chat, setChat] = useState<SharedChatRow | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +68,7 @@ function SharedChatPage() {
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-center">
         <p className="text-sm text-foreground">{error || "Shared chat not found."}</p>
         <button
-          onClick={() => navigate({ to: "/" })}
+          onClick={startOwnChat}
           className="rounded-lg px-4 py-2 text-sm font-semibold text-primary-foreground"
           style={{ background: "var(--gradient-primary)" }}
         >
@@ -88,7 +98,7 @@ function SharedChatPage() {
             </span>
           </div>
           <button
-            onClick={() => navigate({ to: "/" })}
+            onClick={startOwnChat}
             className="inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-primary-foreground"
             style={{ background: "var(--gradient-primary)" }}
           >
@@ -134,7 +144,7 @@ function SharedChatPage() {
             You can't reply to or continue this conversation. Start your own to chat with multiple AI models.
           </p>
           <button
-            onClick={() => navigate({ to: "/" })}
+            onClick={startOwnChat}
             className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-primary-foreground shadow-md transition hover:opacity-95"
             style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow)" }}
           >
