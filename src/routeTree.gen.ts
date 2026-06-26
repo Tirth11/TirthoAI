@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ShareIdRouteImport } from './routes/share.$id'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiHealthModelsRouteImport } from './routes/api/health.models'
 import { Route as ApiChatCompareRouteImport } from './routes/api/chat.compare'
@@ -37,6 +38,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShareIdRoute = ShareIdRouteImport.update({
+  id: '/share/$id',
+  path: '/share/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/chat': typeof ApiChatRouteWithChildren
+  '/share/$id': typeof ShareIdRoute
   '/api/auth/confirm': typeof ApiAuthConfirmRoute
   '/api/auth/register': typeof ApiAuthRegisterRoute
   '/api/chat/compare': typeof ApiChatCompareRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/chat': typeof ApiChatRouteWithChildren
+  '/share/$id': typeof ShareIdRoute
   '/api/auth/confirm': typeof ApiAuthConfirmRoute
   '/api/auth/register': typeof ApiAuthRegisterRoute
   '/api/chat/compare': typeof ApiChatCompareRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/chat': typeof ApiChatRouteWithChildren
+  '/share/$id': typeof ShareIdRoute
   '/api/auth/confirm': typeof ApiAuthConfirmRoute
   '/api/auth/register': typeof ApiAuthRegisterRoute
   '/api/chat/compare': typeof ApiChatCompareRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sitemap.xml'
     | '/api/chat'
+    | '/share/$id'
     | '/api/auth/confirm'
     | '/api/auth/register'
     | '/api/chat/compare'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sitemap.xml'
     | '/api/chat'
+    | '/share/$id'
     | '/api/auth/confirm'
     | '/api/auth/register'
     | '/api/chat/compare'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sitemap.xml'
     | '/api/chat'
+    | '/share/$id'
     | '/api/auth/confirm'
     | '/api/auth/register'
     | '/api/chat/compare'
@@ -141,6 +153,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiChatRoute: typeof ApiChatRouteWithChildren
+  ShareIdRoute: typeof ShareIdRoute
   ApiAuthConfirmRoute: typeof ApiAuthConfirmRoute
   ApiAuthRegisterRoute: typeof ApiAuthRegisterRoute
   ApiHealthModelsRoute: typeof ApiHealthModelsRoute
@@ -174,6 +187,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/share/$id': {
+      id: '/share/$id'
+      path: '/share/$id'
+      fullPath: '/share/$id'
+      preLoaderRoute: typeof ShareIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
@@ -231,6 +251,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiChatRoute: ApiChatRouteWithChildren,
+  ShareIdRoute: ShareIdRoute,
   ApiAuthConfirmRoute: ApiAuthConfirmRoute,
   ApiAuthRegisterRoute: ApiAuthRegisterRoute,
   ApiHealthModelsRoute: ApiHealthModelsRoute,
