@@ -81,6 +81,7 @@ function Index() {
 }
 
 function GuestLayout({ onGoToAuth }: { onGoToAuth: (mode: "signin" | "signup") => void }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const conversation: DBConversation = {
     id: "guest",
     title: "Guest chat",
@@ -90,14 +91,34 @@ function GuestLayout({ onGoToAuth }: { onGoToAuth: (mode: "signin" | "signup") =
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
+  // Guests can chat in this single free conversation; any action that needs
+  // persistence (new chat, rename, delete, import, history) nudges them to sign up.
+  const promptSignup = () => {
+    setSidebarOpen(false);
+    onGoToAuth("signup");
+  };
   return (
     <div className="flex h-dvh min-h-0 overflow-hidden bg-background text-foreground">
+      <Sidebar
+        conversations={[conversation]}
+        activeId="guest"
+        onSelect={() => setSidebarOpen(false)}
+        onNew={promptSignup}
+        onImport={promptSignup}
+        onDelete={promptSignup}
+        onRename={promptSignup}
+        userEmail="Guest"
+        userId="guest"
+        onSignOut={() => onGoToAuth("signin")}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
       <main className="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
         <ChatWindow
           key="guest"
           conversation={conversation}
           onConversationChange={() => {}}
-          onOpenSidebar={() => onGoToAuth("signup")}
+          onOpenSidebar={() => setSidebarOpen(true)}
           userEmail="Guest"
           userId="guest"
           guest
